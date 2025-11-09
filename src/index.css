@@ -4,7 +4,6 @@
   --header-border: rgba(255, 255, 255, 0.08);
   --header-bg-image: url('./assets/background.png');
   --text-muted: rgba(255, 255, 255, 0.7);
-  --accent: #ff8888;
   --accent-color: #ff8888;
   --accent-strong: color-mix(in srgb, var(--accent-color) 85%, white 15%);
   --accent-glow: color-mix(in srgb, var(--accent-color) 35%, transparent);
@@ -30,7 +29,6 @@ body {
   color: #fff;
 }
 
-/* 修改這段 CSS */
 .app-header {
   position: fixed;
   top: 0;
@@ -41,16 +39,10 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-
-  /* --- 修改這裡 --- */
-  /* 只保留背景圖片，移除 linear-gradient 漸層 */
   background-image: var(--header-bg-image);
-  /* --- 修改結束 --- */
-
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
-
   border-bottom: 1px solid var(--header-border);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
@@ -64,35 +56,26 @@ body {
   right: 0;
   bottom: 0;
   z-index: -1;
-  /* 關鍵：將這個偽元素層放到 Header 內容的後面 */
-
-  /* 將背景圖片相關設定放在這裡 */
   background-image: var(--header-bg-image);
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
-
-  /* 套用您指定的濾鏡效果 */
   filter: brightness(60%) grayscale(18%) blur(2px);
-
-  /* 處理濾鏡模糊效果可能導致的邊緣不清晰問題 */
   transform: scale(1.03);
 }
 
-.app-header__title {
+.app-header__actions {
   display: flex;
-  flex-direction: column;
-  line-height: 1.2;
+  gap: 12px;
+  align-items: center;
 }
 
-.app-header__brand {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.app-header__subtitle {
-  font-size: 12px;
-  color: var(--text-muted);
+.app-header__status {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
 }
 
 .app-header__button {
@@ -110,7 +93,6 @@ body {
   cursor: pointer;
   outline: none;
   transition: all 0.3s ease;
-  visibility: hidden;
 }
 
 .app-header__button:hover {
@@ -123,44 +105,64 @@ body {
   transform: scale(0.96);
 }
 
-*/ #back-button:hover {
+.app-header__button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.app-header__button--solid {
+  background: color-mix(in srgb, var(--accent-color) 85%, black 15%);
+  color: #fff;
+  box-shadow: 0 2px 15px color-mix(in srgb, var(--accent-color) 24%, transparent);
+}
+
+#back-button {
+  visibility: hidden;
+}
+
+#back-button:hover {
   text-shadow: 0 0 10px var(--accent-glow);
   box-shadow: 0 2px 15px color-mix(in srgb, var(--accent-color) 16%, transparent);
 }
 
-/* 載入指示器樣式 */
-.app-header__loading {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+.app-header__pill {
   padding: 6px 16px;
   border-radius: 999px;
   -webkit-backdrop-filter: blur(12px) saturate(180%);
   backdrop-filter: blur(12px) saturate(180%);
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--accent-strong);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   box-shadow: 0 2px 15px color-mix(in srgb, var(--accent-color) 16%, transparent);
+}
+
+.app-header__loading {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--accent-strong);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-#loading-indicator[hidden] {
+.app-header__offline {
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 45%, transparent);
+}
+
+#loading-indicator[hidden],
+#offline-indicator[hidden] {
   display: none;
 }
 
-/* 載入動畫效果 */
 @keyframes pulse {
 
   0%,
   100% {
     opacity: 1;
-    transform: translateX(-50%) scale(1);
+    transform: scale(1);
   }
 
   50% {
     opacity: 0.7;
-    transform: translateX(-50%) scale(0.98);
+    transform: scale(0.98);
   }
 }

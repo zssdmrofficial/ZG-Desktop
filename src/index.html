@@ -10,11 +10,22 @@
 
 <body>
   <header class="app-header" role="banner">
-    <button id="back-button" type="button" class="app-header__button" aria-label="返回首頁" title="返回首頁">
-      返回首頁
-    </button>
-    <div id="loading-indicator" class="app-header__loading" role="status" aria-live="polite" aria-atomic="true" hidden>
-      正在載入…
+    <div class="app-header__actions" role="group" aria-label="應用程式操作">
+      <button id="back-button" type="button" class="app-header__button" aria-label="返回首頁" title="返回首頁">
+        返回首頁
+      </button>
+      <button id="refresh-button" type="button" class="app-header__button app-header__button--solid" aria-label="更新離線快取"
+        title="更新離線快取">
+        更新離線快取
+      </button>
+    </div>
+    <div class="app-header__status" role="status" aria-live="polite" aria-atomic="true">
+      <div id="loading-indicator" class="app-header__pill app-header__loading" hidden>
+        正在載入
+      </div>
+      <div id="offline-indicator" class="app-header__pill app-header__offline" hidden>
+        離線快取
+      </div>
     </div>
   </header>
 </body>

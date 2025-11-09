@@ -3,14 +3,13 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
-    "baseUrl": "./",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "paths": {
       "*": [
-        "node_modules/*"
+        "./node_modules/*"
       ]
     }
   },
