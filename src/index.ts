@@ -23,6 +23,7 @@ const createWindow = (): void => {
   mainWindow = new BrowserWindow({
     height: DEFAULT_WINDOW_HEIGHT,
     width: DEFAULT_WINDOW_WIDTH,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
