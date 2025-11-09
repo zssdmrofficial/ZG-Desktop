@@ -6,4 +6,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   goHome: () => ipcRenderer.send('go-back-home'),
   onShowBackButton: (callback: () => void) => ipcRenderer.on('show-back-button', callback),
   onHideBackButton: (callback: () => void) => ipcRenderer.on('hide-back-button', callback),
+  onShowLoadingIndicator: (callback: () => void) => ipcRenderer.on('show-loading-indicator', callback),
+  onHideLoadingIndicator: (callback: () => void) => ipcRenderer.on('hide-loading-indicator', callback),
 });

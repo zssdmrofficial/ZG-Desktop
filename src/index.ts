@@ -99,6 +99,7 @@ ipcMain.on('navigate-to-url', async (event, url: string) => {
   }
 
   isLoadingUrl = true; // 上鎖
+  mainWindow.webContents.send('show-loading-indicator');
 
   try {
     // 在載入新網址前，清除 externalView 的快取
@@ -123,6 +124,9 @@ ipcMain.on('navigate-to-url', async (event, url: string) => {
   } finally {
     // 無論成功或失敗，最後都要解鎖
     isLoadingUrl = false;
+    if (mainWindow) {
+      mainWindow.webContents.send('hide-loading-indicator');
+    }
   }
 });
 
@@ -134,6 +138,7 @@ ipcMain.on('go-back-home', () => {
   }
   switchToView(homeView);
   mainWindow.webContents.send('hide-back-button');
+  mainWindow.webContents.send('hide-loading-indicator'); // 確保返回首頁後隱藏載入狀態
 });
 
 // ... (app event listeners 保持不變) ...

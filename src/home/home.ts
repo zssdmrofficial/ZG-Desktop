@@ -9,6 +9,8 @@ declare global {
       goHome: () => void;
       onShowBackButton: (callback: () => void) => void;
       onHideBackButton: (callback: () => void) => void;
+      onShowLoadingIndicator: (callback: () => void) => void;
+      onHideLoadingIndicator: (callback: () => void) => void;
     };
   }
 }
