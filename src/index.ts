@@ -1,11 +1,10 @@
 // src/index.ts
 import { app, BrowserWindow, ipcMain, BrowserView } from 'electron';
 
+// ... (其他 declare 和常數定義保持不變) ...
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
-// 【新增】宣告 home.html 的路徑變數
 declare const HOME_VIEW_WEBPACK_ENTRY: string;
-
 
 const HEADER_HEIGHT = 50;
 const DEFAULT_WINDOW_WIDTH = 1280;
@@ -14,10 +13,14 @@ const BASE_CONTENT_WIDTH = DEFAULT_WINDOW_WIDTH;
 const BASE_CONTENT_HEIGHT = DEFAULT_WINDOW_HEIGHT - HEADER_HEIGHT;
 const MIN_ZOOM_FACTOR = 0.25;
 const MAX_ZOOM_FACTOR = 4;
+
 let mainWindow: BrowserWindow;
 let homeView: BrowserView;
 let externalView: BrowserView;
 let activeView: BrowserView | null = null;
+let isLoadingUrl = false; // 【新增】狀態鎖，防止重複導航
+
+// ... (createWindow, switchToView, getZoomFactor, resizeActiveView 函式保持不變) ...
 
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
@@ -36,7 +39,6 @@ const createWindow = (): void => {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
   });
-  // 【修正】使用 Webpack 提供的正確路徑來載入 home.html
   homeView.webContents.loadURL(HOME_VIEW_WEBPACK_ENTRY);
   homeView.setAutoResize({ width: true, height: true });
 
@@ -53,10 +55,8 @@ const createWindow = (): void => {
   
   let resizeTimeout: NodeJS.Timeout;
   mainWindow.on('resize', () => {
-    // 使用 clearTimeout 來防止在快速連續觸發時執行過多次 (debounce)
     clearTimeout(resizeTimeout);
-    // 將 resizeActiveView 的呼叫放入 setTimeout 中
-    resizeTimeout = setTimeout(() => resizeActiveView(), 100); // 延遲 100 毫秒通常足夠
+    resizeTimeout = setTimeout(() => resizeActiveView(), 100);
   });
 };
 
@@ -73,47 +73,70 @@ const switchToView = (view: BrowserView) => {
   view.webContents.focus();
 };
 
-const getZoomFactor = (width: number, height: number): number => {
-  const widthScale = width / BASE_CONTENT_WIDTH;
-  const heightScale = height / BASE_CONTENT_HEIGHT;
-  const zoomFactor = Math.min(widthScale, heightScale);
-
-  // Clamp to a safe range so repeated resizing never overflows nor shrinks to zero.
-  return Math.min(Math.max(zoomFactor, MIN_ZOOM_FACTOR), MAX_ZOOM_FACTOR);
-};
-
 const resizeActiveView = () => {
   if (!mainWindow || !activeView) return;
   
-  // 獲取主視窗的內容區域尺寸
   const bounds = mainWindow.getContentBounds();
   
-  // 設定 BrowserView 的邊界，使其填滿扣除頭部高度後的剩餘空間
   const viewBounds = {
     x: 0,
     y: HEADER_HEIGHT,
-    width: Math.max(bounds.width, 1), // 確保寬度至少為 1
-    height: Math.max(bounds.height - HEADER_HEIGHT, 1), // 確保高度至少為 1
+    width: Math.max(bounds.width, 1),
+    height: Math.max(bounds.height - HEADER_HEIGHT, 1),
   };
 
-  // 只需設定 BrowserView 的邊界即可
-  // 它會自動改變大小，內部的網頁內容會根據新尺寸自然重排
   activeView.setBounds(viewBounds);
 };
 
-ipcMain.on('navigate-to-url', (event, url: string) => {
-  if (!mainWindow) return;
-  externalView.webContents.loadURL(url);
-  switchToView(externalView);
-  mainWindow.webContents.send('show-back-button');
+// 【主要修改處】
+ipcMain.on('navigate-to-url', async (event, url: string) => {
+  // 如果沒有主視窗，或正在載入中，則忽略這次的請求
+  if (!mainWindow || isLoadingUrl) {
+    if (isLoadingUrl) {
+      console.log('Navigation is already in progress. Ignoring new request.');
+    }
+    return;
+  }
+
+  isLoadingUrl = true; // 上鎖
+
+  try {
+    // 在載入新網址前，清除 externalView 的快取
+    await externalView.webContents.session.clearCache();
+    console.log(`Cache cleared. Navigating to: ${url}`);
+    
+    // 執行載入操作
+    await externalView.webContents.loadURL(url);
+    
+    // 成功載入後再切換視圖和顯示按鈕
+    switchToView(externalView);
+    mainWindow.webContents.send('show-back-button');
+
+  } catch (error) {
+    // 捕捉任何錯誤，特別是 ERR_ABORTED
+    // 這裡我們只在控制台記錄它，而不是讓應用程式崩潰
+    if (error.code === 'ERR_ABORTED') {
+      console.log('Navigation was aborted.');
+    } else {
+      console.error(`Failed to load URL "${url}":`, error);
+    }
+  } finally {
+    // 無論成功或失敗，最後都要解鎖
+    isLoadingUrl = false;
+  }
 });
 
 ipcMain.on('go-back-home', () => {
   if (!mainWindow) return;
+  // 如果正在載入外部頁面時點擊返回，中止它
+  if (externalView.webContents.isLoading()) {
+    externalView.webContents.stop();
+  }
   switchToView(homeView);
   mainWindow.webContents.send('hide-back-button');
 });
 
+// ... (app event listeners 保持不變) ...
 app.on('ready', createWindow);
 
 app.on('window-all-closed', () => {
