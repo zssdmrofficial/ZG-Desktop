@@ -1,4 +1,5 @@
 // src/renderer.ts
+import './index.css';
 
 // 【修正】提供完整的 API 類型定義
 declare global {

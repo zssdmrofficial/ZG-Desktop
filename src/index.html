@@ -2,31 +2,18 @@
 <html lang="zh-Hant">
 
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <meta charset="UTF-8" />
-  <title>首頁</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZG-Desktop 導覽列</title>
+  <link rel="stylesheet" href="./index.css" />
 </head>
 
 <body>
-  <!-- 背景圖層 -->
-  <div class="full-bg">
-    <img src="assets/background.png" alt="背景">
-  </div>
-
-  <!-- 主要內容容器 -->
-  <div class="main-container">
-    <header class="content-card">
-      <h1>ZG-Desktop</h1>
-      <p>請選擇一個目標網站來瀏覽</p>
-    </header>
-
-    <section class="content-card">
-      <h2>網站連結</h2>
-      <!-- 按鈕將由 JS 動態生成到這裡 -->
-      <div id="link-container"></div>
-    </section>
-  </div>
+  <header class="app-header" role="banner">
+    <button id="back-button" type="button" class="app-header__button" aria-label="返回首頁" title="返回首頁">
+      返回首頁
+    </button>
+  </header>
 </body>
 
 </html>
