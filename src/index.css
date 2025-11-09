@@ -5,6 +5,9 @@
   --header-bg-image: url('./assets/background.png');
   --text-muted: rgba(255, 255, 255, 0.7);
   --accent: #ff8888;
+  --accent-color: #ff8888;
+  --accent-strong: color-mix(in srgb, var(--accent-color) 85%, white 15%);
+  --accent-glow: color-mix(in srgb, var(--accent-color) 35%, transparent);
   font-family:
     -apple-system,
     BlinkMacSystemFont,
@@ -97,21 +100,67 @@ body {
   height: 32px;
   padding: 0 16px;
   border-radius: 999px;
-  border: 1px solid transparent;
-  background-color: transparent;
-  color: #fff;
+  border: none;
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--accent-strong);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  outline: none;
+  transition: all 0.3s ease;
   visibility: hidden;
 }
 
 .app-header__button:hover {
-  background-color: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.24);
+  color: #fff;
 }
 
 .app-header__button:active {
-  background-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(0.96);
+}
+
+*/ #back-button:hover {
+  text-shadow: 0 0 10px var(--accent-glow);
+  box-shadow: 0 2px 15px color-mix(in srgb, var(--accent-color) 16%, transparent);
+}
+
+/* 載入指示器樣式 */
+.app-header__loading {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 15px color-mix(in srgb, var(--accent-color) 16%, transparent);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+#loading-indicator[hidden] {
+  display: none;
+}
+
+/* 載入動畫效果 */
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: translateX(-50%) scale(0.98);
+  }
 }
