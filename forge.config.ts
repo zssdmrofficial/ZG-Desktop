@@ -1,3 +1,5 @@
+// forge.config.ts
+
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
@@ -14,6 +16,13 @@ import { rendererConfig } from './webpack.renderer.config';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    // 【新增】設定打包後的應用程式圖示
+    // Forge 會自動根據目標平台選擇 .ico 或 .icns (如果存在)
+    icon: './src/assets/icon', 
+    // 【新增】將整個 assets 資料夾複製到打包後的 resources 目錄中
+    extraResource: [
+      './src/assets'
+    ]
   },
   rebuildConfig: {},
   makers: [
@@ -45,8 +54,6 @@ const config: ForgeConfig = {
         ],
       },
     }),
-    // Fuses are used to enable/disable various Electron functionality
-    // at package time, before code signing the application
     new FusesPlugin({
       version: FuseVersion.V1,
       [FuseV1Options.RunAsNode]: false,
