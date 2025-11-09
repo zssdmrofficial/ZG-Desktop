@@ -14,6 +14,7 @@ export class OfflineCacheManager {
   private readonly offlineIndex = new Map<string, string>();
   private readonly originToSite = new Map<string, TargetWebsite>();
   private readonly originToFolder = new Map<string, string>();
+  private readonly hostToFolder = new Map<string, string>();
   private gitAvailable: boolean | null = null;
   private refreshTask: Promise<RefreshSummary> | null = null;
 
@@ -22,9 +23,12 @@ export class OfflineCacheManager {
     private readonly websites: TargetWebsite[],
   ) {
     this.websites.forEach(site => {
-      const origin = this.getOrigin(site.url);
+      const siteUrl = new URL(site.url);
+      const origin = siteUrl.origin;
+      const folderName = this.getFolderName(site.url);
       this.originToSite.set(origin, site);
-      this.originToFolder.set(origin, this.getFolderName(site.url));
+      this.originToFolder.set(origin, folderName);
+      this.hostToFolder.set(siteUrl.host, folderName);
     });
   }
 
@@ -279,6 +283,16 @@ export class OfflineCacheManager {
   private getFolderName(url: string): string {
     const hostname = new URL(url).hostname;
     return hostname.replace(/[^a-zA-Z0-9.-]/g, '_');
+  }
+
+  getSiteRootForOrigin(origin: string): string | null {
+    const folder = this.originToFolder.get(origin);
+    return folder ? path.join(this.getCacheRoot(), folder) : null;
+  }
+
+  getSiteRootForHost(host: string): string | null {
+    const folder = this.hostToFolder.get(host);
+    return folder ? path.join(this.getCacheRoot(), folder) : null;
   }
 
   private async pathExists(targetPath: string): Promise<boolean> {
