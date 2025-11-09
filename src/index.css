@@ -49,8 +49,8 @@ body {
   background-repeat: no-repeat;
 
   border-bottom: 1px solid var(--header-border);
-  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 .app-header::before {

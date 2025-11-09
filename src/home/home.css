@@ -114,9 +114,9 @@ body {
 /* 玻璃質感卡片 (核心元件) - 已修改 */
 .content-card {
     background: var(--content-bg);
+    -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
     /* MODIFIED: 模糊半徑從 8px 改為 5px */
-    -webkit-backdrop-filter: blur(5px);
     border-radius: var(--radius-ui);
     padding: 30px;
     margin-bottom: 24px;
@@ -202,9 +202,9 @@ section h2 {
     /* MODIFIED: 調整圓角 */
     border: none;
     /* MODIFIED: 移除邊框 */
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
     backdrop-filter: blur(12px) saturate(180%);
     /* ADDED: 加入液態玻璃效果 */
-    -webkit-backdrop-filter: blur(12px) saturate(180%);
     background: rgba(255, 255, 255, 0.14);
     /* MODIFIED: 調整背景色與透明度 */
     color: var(--accent-strong);
@@ -246,8 +246,8 @@ section h2 {
     border-radius: 999px;
     border: 2px solid transparent;
     background-clip: padding-box;
-    backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
     transition: background-color 0.25s ease, transform 0.25s ease;
     /* ADDED: 加入 transform 的 transition */
 }
@@ -256,10 +256,4 @@ section h2 {
     background-color: rgba(255, 255, 255, 0.25);
     transform: scaleX(1.15);
     /* ADDED: 加入 hover 放大效果 */
-}
-
-/* 適用於 Firefox (此部分與目標風格一致，無需修改) */
-html {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
