@@ -131,6 +131,11 @@ ipcMain.on('navigate-to-url', async (event, url: string) => {
     } else {
       console.error(`Failed to load URL "${url}":`, error);
     }
+  } finally {
+    isLoadingUrl = false;
+    if (mainWindow) {
+      mainWindow.webContents.send('hide-loading-indicator');
+    }
   }
 });
 
