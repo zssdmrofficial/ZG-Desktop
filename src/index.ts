@@ -133,10 +133,25 @@ const loadExternalUrlWithTimeout = async (url: string): Promise<NavigationResult
   });
 };
 
-const loadOfflineCopy = async (entryPath: string): Promise<void> => {
+const loadOfflineCopy = async (entryPath: string, originalUrl?: string): Promise<void> => {
   const targetView = externalView;
   if (!targetView) throw new Error('External view is not ready.');
-  await targetView.webContents.loadFile(entryPath);
+
+  let hash: string | undefined;
+  if (originalUrl) {
+    try {
+      const parsedUrl = new URL(originalUrl);
+      hash = parsedUrl.hash ? parsedUrl.hash.replace(/^#/, '') : undefined;
+    } catch (error) {
+      console.warn(`[Navigation] Unable to parse URL "${originalUrl}" for hash preservation:`, error);
+    }
+  }
+
+  if (hash) {
+    await targetView.webContents.loadFile(entryPath, { hash });
+  } else {
+    await targetView.webContents.loadFile(entryPath);
+  }
 };
 
 ipcMain.on('navigate-to-url', async (_event, url: string) => {
@@ -160,7 +175,7 @@ ipcMain.on('navigate-to-url', async (_event, url: string) => {
         throw new Error(`Offline cache unavailable for ${url} (${reason}).`);
       }
       usedOfflineCopy = true;
-      await loadOfflineCopy(offlineEntry);
+      await loadOfflineCopy(offlineEntry, url);
       console.warn(`[Navigation] Falling back to offline cache for ${url} (${reason})`);
     };
 
