@@ -37,6 +37,11 @@ const config: ForgeConfig = {
               js: './src/preload.ts',
             },
           },
+          {
+            html: './src/home/home.html',
+            js: './src/home/home.ts',
+            name: 'home_view',
+          },
         ],
       },
     }),

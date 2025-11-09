@@ -1,2 +1,9 @@
-// See the Electron documentation for details on how to use preload scripts:
-// https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
+// src/preload.ts
+import { contextBridge, ipcRenderer } from 'electron';
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  navigate: (url: string) => ipcRenderer.send('navigate-to-url', url),
+  goHome: () => ipcRenderer.send('go-back-home'),
+  onShowBackButton: (callback: () => void) => ipcRenderer.on('show-back-button', callback),
+  onHideBackButton: (callback: () => void) => ipcRenderer.on('hide-back-button', callback),
+});

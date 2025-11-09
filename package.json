@@ -1,8 +1,8 @@
 {
   "name": "zg-desktop",
-  "productName": "zg-desktop",
+  "productName": "ZG-Desktop",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "張師社會主義民主共和國官方網站桌面版",
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",
@@ -30,6 +30,7 @@
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vercel/webpack-asset-relocator-loader": "^1.7.3",
+    "copy-webpack-plugin": "^13.0.1",
     "css-loader": "^6.11.0",
     "electron": "39.1.1",
     "eslint": "^8.57.1",
