@@ -27,6 +27,7 @@
     "@electron-forge/plugin-fuses": "^7.10.2",
     "@electron-forge/plugin-webpack": "^7.10.2",
     "@electron/fuses": "^1.8.0",
+    "@types/adm-zip": "^0.5.7",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vercel/webpack-asset-relocator-loader": "^1.7.3",
@@ -42,7 +43,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1",
-    "website-scraper": "^6.0.0"
+    "adm-zip": "^0.5.16",
+    "electron-squirrel-startup": "^1.0.1"
   }
 }

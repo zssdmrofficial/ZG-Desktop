@@ -12,6 +12,9 @@
     "paths": {
       "*": [
         "./node_modules/*"
+      ],
+      "adm-zip": [
+        "./node_modules/@types/adm-zip"
       ]
     }
   },
