@@ -70,14 +70,6 @@ body {
   align-items: center;
 }
 
-.app-header__status {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-}
-
 .app-header__button {
   min-width: 120px;
   height: 32px;
@@ -110,12 +102,6 @@ body {
   opacity: 0.6;
 }
 
-.app-header__button--solid {
-  background: color-mix(in srgb, var(--accent-color) 85%, black 15%);
-  color: #fff;
-  box-shadow: 0 2px 15px color-mix(in srgb, var(--accent-color) 24%, transparent);
-}
-
 #back-button {
   visibility: hidden;
 }
@@ -137,15 +123,27 @@ body {
 }
 
 .app-header__loading {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--accent-strong);
-  animation: pulse 1.5s ease-in-out infinite;
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  /* fallback for older Chrome */
+  border: 1px solid rgba(255, 136, 136, 0.45);
+
+  /* use color-mix when supported */
+  @supports (color: color-mix(in srgb, var(--accent-color) 45%, transparent)) {
+    border-color: color-mix(in srgb, var(--accent-color) 45%, transparent);
+  }
 }
 
 .app-header__offline {
   background: rgba(255, 255, 255, 0.18);
   color: white;
-  border: 1px solid color-mix(in srgb, var(--accent-color) 45%, transparent);
+  /* fallback for older Chrome */
+  border: 1px solid rgba(255, 136, 136, 0.45);
+
+  /* use color-mix when supported */
+  @supports (color: color-mix(in srgb, var(--accent-color) 45%, transparent)) {
+    border-color: color-mix(in srgb, var(--accent-color) 45%, transparent);
+  }
 }
 
 #loading-indicator[hidden],
@@ -165,4 +163,44 @@ body {
     opacity: 0.7;
     transform: scale(0.98);
   }
+}
+
+.app-header__status {
+  position: absolute;
+  /* 固定定位在 header 內 */
+  right: 24px;
+  /* 與右側留一點距離 */
+  top: 50%;
+  /* 垂直置中 */
+  transform: translateY(-50%);
+  /* 校正置中 */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 150px;
+  height: auto;
+}
+
+#loading-indicator,
+#offline-indicator {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* 淡入淡出處理 */
+#loading-indicator[hidden],
+#offline-indicator[hidden] {
+  display: block;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#loading-indicator:not([hidden]),
+#offline-indicator:not([hidden]) {
+  opacity: 1;
+  visibility: visible;
 }
