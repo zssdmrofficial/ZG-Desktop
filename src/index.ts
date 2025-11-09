@@ -21,13 +21,6 @@ let externalView: BrowserView | null = null;
 let activeView: BrowserView | null = null;
 let isLoadingUrl = false;
 
-class NavigationTimeoutError extends Error {
-  constructor() {
-    super('Navigation did not finish within the expected window.');
-    this.name = 'NavigationTimeoutError';
-  }
-}
-
 const createWindow = (): void => {
   const iconPath = app.isPackaged
     ? path.join(process.resourcesPath, 'assets/icon.ico')
@@ -107,23 +100,33 @@ const resizeActiveView = () => {
   activeView.setBounds(viewBounds);
 };
 
-const loadExternalUrlWithTimeout = async (url: string): Promise<void> => {
+type NavigationResult = 'online' | 'timeout';
+
+const loadExternalUrlWithTimeout = async (url: string): Promise<NavigationResult> => {
   const targetView = externalView;
   if (!targetView) throw new Error('External view is not ready.');
 
   return new Promise((resolve, reject) => {
+    let timedOut = false;
     const timeoutId = setTimeout(() => {
+      timedOut = true;
       targetView.webContents.stop();
-      reject(new NavigationTimeoutError());
+      resolve('timeout');
     }, NAVIGATION_TIMEOUT_MS);
 
     targetView.webContents
       .loadURL(url)
       .then(() => {
+        if (timedOut) {
+          return;
+        }
         clearTimeout(timeoutId);
-        resolve();
+        resolve('online');
       })
       .catch(error => {
+        if (timedOut) {
+          return;
+        }
         clearTimeout(timeoutId);
         reject(error);
       });
@@ -134,28 +137,6 @@ const loadOfflineCopy = async (entryPath: string): Promise<void> => {
   const targetView = externalView;
   if (!targetView) throw new Error('External view is not ready.');
   await targetView.webContents.loadFile(entryPath);
-};
-
-const shouldFallbackToOffline = (error: unknown): boolean => {
-  if (error instanceof NavigationTimeoutError) {
-    return true;
-  }
-
-  if (typeof error === 'object' && error !== null && 'code' in error) {
-    const { code } = error as { code?: string };
-    if (!code) return false;
-    const offlineCodes = new Set([
-      'ERR_INTERNET_DISCONNECTED',
-      'ERR_CONNECTION_TIMED_OUT',
-      'ERR_CONNECTION_RESET',
-      'ERR_CONNECTION_CLOSED',
-      'ERR_NAME_NOT_RESOLVED',
-      'ERR_CONNECTION_REFUSED',
-    ]);
-    return offlineCodes.has(code);
-  }
-
-  return false;
 };
 
 ipcMain.on('navigate-to-url', async (_event, url: string) => {
@@ -173,18 +154,26 @@ ipcMain.on('navigate-to-url', async (_event, url: string) => {
     console.log(`Navigating to: ${url}`);
 
     let usedOfflineCopy = false;
-
-    try {
-      await loadExternalUrlWithTimeout(url);
-    } catch (error) {
+    const fallbackToOffline = async (reason: string): Promise<void> => {
       const offlineEntry = await offlineCacheManager.getOfflineEntry(url);
-      if (offlineEntry && shouldFallbackToOffline(error)) {
-        usedOfflineCopy = true;
-        await loadOfflineCopy(offlineEntry);
-        console.warn(`[Navigation] Falling back to offline cache for ${url}`);
-      } else {
-        throw error;
+      if (!offlineEntry) {
+        throw new Error(`Offline cache unavailable for ${url} (${reason}).`);
       }
+      usedOfflineCopy = true;
+      await loadOfflineCopy(offlineEntry);
+      console.warn(`[Navigation] Falling back to offline cache for ${url} (${reason})`);
+    };
+
+    let navigationResult: NavigationResult | null = null;
+    try {
+      navigationResult = await loadExternalUrlWithTimeout(url);
+    } catch (error) {
+      const errorDetails = error instanceof Error ? error.message : String(error);
+      await fallbackToOffline(`encountered an error: ${errorDetails}`);
+    }
+
+    if (navigationResult === 'timeout') {
+      await fallbackToOffline(`timed out after ${NAVIGATION_TIMEOUT_MS / 1000} seconds`);
     }
 
     switchToView(externalView);
