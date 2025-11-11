@@ -1,4 +1,3 @@
-// webpack.plugins.ts
 import type { WebpackPluginInstance } from 'webpack';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 

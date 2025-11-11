@@ -1,10 +1,8 @@
-// src/index.ts
 import { app, BrowserWindow, ipcMain, BrowserView, protocol } from 'electron';
 import * as path from 'path';
 import { OfflineCacheManager } from './offlineCache';
 import { targetWebsites, NAVIGATION_TIMEOUT_MS } from './shared/websites';
 
-// ... (��L declare �M�`�Ʃw�q�O������) ...
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 declare const HOME_VIEW_WEBPACK_ENTRY: string;

@@ -1,4 +1,3 @@
-// src/renderer.ts
 import './index.css';
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -65,5 +64,4 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// �i�ץ��j�N���ɮ׼аO���ҲաA�ѨM TS2669 ���~
 export {};

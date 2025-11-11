@@ -125,10 +125,8 @@ body {
 .app-header__loading {
   background: rgba(255, 255, 255, 0.18);
   color: white;
-  /* fallback for older Chrome */
   border: 1px solid rgba(255, 136, 136, 0.45);
 
-  /* use color-mix when supported */
   @supports (color: color-mix(in srgb, var(--accent-color) 45%, transparent)) {
     border-color: color-mix(in srgb, var(--accent-color) 45%, transparent);
   }
@@ -137,10 +135,8 @@ body {
 .app-header__offline {
   background: rgba(255, 255, 255, 0.18);
   color: white;
-  /* fallback for older Chrome */
   border: 1px solid rgba(255, 136, 136, 0.45);
 
-  /* use color-mix when supported */
   @supports (color: color-mix(in srgb, var(--accent-color) 45%, transparent)) {
     border-color: color-mix(in srgb, var(--accent-color) 45%, transparent);
   }
@@ -167,13 +163,9 @@ body {
 
 .app-header__status {
   position: absolute;
-  /* 固定定位在 header 內 */
   right: 24px;
-  /* 與右側留一點距離 */
   top: 50%;
-  /* 垂直置中 */
   transform: translateY(-50%);
-  /* 校正置中 */
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -190,7 +182,6 @@ body {
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-/* 淡入淡出處理 */
 #loading-indicator[hidden],
 #offline-indicator[hidden] {
   display: block;

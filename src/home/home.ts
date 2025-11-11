@@ -1,4 +1,3 @@
-// src/home/home.ts
 import './home.css';
 import { targetWebsites } from '../shared/websites';
 
@@ -18,5 +17,4 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// �i�ץ��j�N���ɮ׼аO���ҲաA�ѨM TS2669 ���~
 export {};

@@ -1,30 +1,17 @@
-/* =================================================================== */
-/* ZG-Desktop 主題樣式表 (已根據指定風格進行修改) */
-/* =================================================================== */
-
-/* --- 1. :root 全域變數定義 --- */
-/* 這裡定義了整個應用程式的視覺核心，確保風格統一 (此區塊與目標風格一致) */
 :root {
-    /* 主題粉紅色票 */
     --accent-color: #ff8888;
     --accent-strong: color-mix(in srgb, var(--accent-color) 85%, white 15%);
     --accent-soft: color-mix(in srgb, var(--accent-color) 40%, white 10%);
     --accent-glow: color-mix(in srgb, var(--accent-color) 35%, transparent);
     --accent-shadow: color-mix(in srgb, var(--accent-color) 25%, black 45%);
-
-    /* 文字與背景顏色 */
     --text-primary: #ffffff;
     --text-secondary: rgba(255, 255, 255, 0.78);
     --bg-dark-overlay: rgba(0, 0, 0, 0.55);
     --content-bg: rgba(255, 255, 255, 0.06);
-
-    /* 統一樣式尺寸 */
     --radius-ui: 24px;
     --maxw-content: 700px;
 }
 
-
-/* --- 2. 動畫效果定義 --- */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -47,8 +34,6 @@
     }
 }
 
-
-/* --- 3. 基礎與全域樣式重設 --- */
 * {
     box-sizing: border-box;
 }
@@ -58,38 +43,27 @@ body {
     color: var(--text-primary);
     font-family: "Noto Sans TC", "Inter", system-ui, -apple-system, sans-serif;
     background-color: #000;
-    /* 基礎背景色 */
     animation: fadeIn 1s ease-out;
-
-    /* 啟用浮動捲動軸 (overlay) */
     overflow-y: overlay;
 }
 
-
-/* --- 4. 主要版面與背景配置 --- */
-
-/* 全螢幕背景容器 */
 .full-bg {
     position: fixed;
     inset: 0;
-    /* 等同 top, right, bottom, left 皆為 0 */
     width: 100%;
     height: 100%;
     z-index: -2;
     overflow: hidden;
 }
 
-/* 背景圖片本身的效果 */
 .full-bg img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     filter: brightness(60%) grayscale(18%) blur(2px);
     transform: scale(1.03);
-    /* 輕微放大，避免邊緣模糊 */
 }
 
-/* 背景上方的顏色漸層與遮罩 */
 .full-bg::after {
     content: '';
     position: absolute;
@@ -100,7 +74,6 @@ body {
     z-index: -1;
 }
 
-/* 內容主容器 (版心) */
 .main-container {
     width: 100%;
     max-width: var(--maxw-content);
@@ -108,28 +81,18 @@ body {
     padding: 0 20px;
 }
 
-
-/* --- 5. 元件樣式：卡片、文字與按鈕 --- */
-
-/* 玻璃質感卡片 (核心元件) - 已修改 */
 .content-card {
     background: var(--content-bg);
     -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
-    /* MODIFIED: 模糊半徑從 8px 改為 5px */
     border-radius: var(--radius-ui);
     padding: 30px;
     margin-bottom: 24px;
-    /* REMOVED: 移除了 border，使其更符合目標風格的純粹玻璃感 */
     box-shadow: 0 2px 15px color-mix(in srgb, var(--accent-color) 16%, transparent);
-    /* MODIFIED: 陰影改為更柔和的粉色調 */
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-
-    /* MODIFIED: 動畫時間從 0.7s 改為 0.6s */
     animation: slideInUp 0.6s ease-out backwards;
 }
 
-/* 為卡片設定錯開的動畫延遲，更有層次感 - 已修改 */
 header.content-card {
     animation-delay: 0.1s;
 }
@@ -150,25 +113,18 @@ section:nth-child(4) {
     animation-delay: 0.9s;
 }
 
-
-/* 卡片懸浮效果 - 已修改 */
 .content-card:hover {
     transform: translateY(-5px);
-    /* MODIFIED: 位移從 -6px 改為 -5px */
     box-shadow: 0 8px 26px color-mix(in srgb, var(--accent-color) 35%, transparent);
-    /* MODIFIED: 陰影與目標風格統一 */
 }
 
-/* 標題與段落文字 */
 header h1 {
     font-size: clamp(32px, 4vw, 48px);
     font-weight: 800;
     text-align: center;
     margin-bottom: 8px;
-    /* MODIFIED: 統一 margin 寫法 */
     color: var(--accent-strong);
     text-shadow: 0 0 10px var(--accent-glow);
-    /* MODIFIED: 陰影模糊從 12px 改為 10px */
 }
 
 header p {
@@ -176,61 +132,39 @@ header p {
     text-align: center;
     color: var(--text-secondary);
     margin-bottom: 30px;
-    /* MODIFIED: 統一 margin 寫法 */
 }
 
 section h2 {
     font-size: clamp(24px, 3vw, 30px);
     font-weight: 700;
     margin-bottom: 15px;
-    /* MODIFIED: 統一 margin 寫法 */
     color: var(--accent-strong);
-    /* REMOVED: 移除了 border-bottom 和 padding-bottom 以匹配目標風格 */
 }
 
-/* 網站連結按鈕 - 已大幅修改為液態玻璃風格 */
 #link-container button {
     display: block;
     width: 100%;
     padding: 10px 20px;
-    /* MODIFIED: 調整 padding */
     margin-bottom: 15px;
     font-size: 16px;
     font-weight: 700;
     text-align: left;
     border-radius: 12px;
-    /* MODIFIED: 調整圓角 */
     border: none;
-    /* MODIFIED: 移除邊框 */
     -webkit-backdrop-filter: blur(12px) saturate(180%);
     backdrop-filter: blur(12px) saturate(180%);
-    /* ADDED: 加入液態玻璃效果 */
     background: rgba(255, 255, 255, 0.14);
-    /* MODIFIED: 調整背景色與透明度 */
     color: var(--accent-strong);
-    /* MODIFIED: 調整文字顏色 */
     cursor: pointer;
     outline: none;
     transition: all 0.3s ease;
-    /* MODIFIED: 調整 transition 效果 */
 }
 
-/* 連結按鈕懸浮效果 - 已修改 */
 #link-container button:hover {
     background: rgba(255, 255, 255, 0.24);
-    /* MODIFIED: 調整 hover 背景色 */
     color: #fff;
-    /* MODIFIED: 調整 hover 文字顏色 */
-    /* REMOVED: 移除了 transform 和 box-shadow 以匹配目標風格 */
 }
 
-/* 連結按鈕點擊效果 - 已移除 */
-/* REMOVED: 目標風格中無 active 效果，故移除 */
-
-
-/* --- 6. 自訂浮動捲動軸樣式 --- */
-
-/* 適用於 Chrome / Edge / Safari 等 WebKit 核心瀏覽器 */
 ::-webkit-scrollbar {
     width: 10px;
     background: transparent;
@@ -242,18 +176,15 @@ section h2 {
 
 ::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.12);
-    /* MODIFIED: 透明度從 0.15 改為 0.12 */
     border-radius: 999px;
     border: 2px solid transparent;
     background-clip: padding-box;
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
     transition: background-color 0.25s ease, transform 0.25s ease;
-    /* ADDED: 加入 transform 的 transition */
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.25);
     transform: scaleX(1.15);
-    /* ADDED: 加入 hover 放大效果 */
 }

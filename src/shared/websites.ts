@@ -1,16 +1,6 @@
 export interface RepositorySource {
-  /**
-   * Full Git clone URL, e.g. https://github.com/org/repo.git
-   */
   url: string;
-  /**
-   * Branch to checkout. Defaults to `main` when omitted.
-   */
   branch?: string;
-  /**
-   * Entry file relative to the repository root used for offline browsing.
-   * Defaults to `index.html`.
-   */
   entryFile?: string;
 }
 
