@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, BrowserView, protocol } from 'electron';
 import * as path from 'path';
 import { OfflineCacheManager } from './offlineCache';
 import { targetWebsites, NAVIGATION_TIMEOUT_MS } from './shared/websites';
+import { startAutoUpdateChecks } from './autoUpdate';
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
@@ -244,6 +245,7 @@ const bootstrap = async () => {
   await registerOfflineProtocol();
   createWindow();
   void offlineCacheManager.refreshAllSites();
+  startAutoUpdateChecks(() => mainWindow);
 };
 
 const registerOfflineProtocol = async (): Promise<void> => {
