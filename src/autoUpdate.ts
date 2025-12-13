@@ -12,7 +12,6 @@ const REPO = 'ZG-Desktop';
 const ASSET_NAME = 'ZG-Desktop-Setup.exe';
 const API_URL = `https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`;
 const USER_AGENT = `${REPO} Auto Updater`;
-const DEFAULT_INTERVAL_MS = 1000 * 60 * 60 * 4;
 const MAX_REDIRECTS = 5;
 
 const REQUEST_OPTIONS: https.RequestOptions = {
@@ -32,8 +31,6 @@ interface GitHubRelease {
     browser_download_url: string;
   }>;
 }
-
-let alertedTag: string | null = null;
 
 const normalizeVersionString = (value: string): string | null => {
   if (!value) return null;
@@ -175,30 +172,7 @@ const downloadInstaller = async (url: string, destination: string): Promise<void
   });
 };
 
-const promptAndLaunchInstaller = async (
-  window: BrowserWindow,
-  release: GitHubRelease,
-  installerPath: string
-): Promise<void> => {
-  const detailLines: string[] = [];
-  if (release.body) {
-    detailLines.push(release.body);
-  }
-  detailLines.push(`安裝檔：${ASSET_NAME}`);
-
-  const { response } = await dialog.showMessageBox(window, {
-    type: 'question',
-    buttons: ['立即更新', '稍後'],
-    defaultId: 0,
-    cancelId: 1,
-    message: `找到新版 ${release.tag_name}`,
-    detail: detailLines.join('\n\n'),
-  });
-
-  if (response !== 0) {
-    return;
-  }
-
+const launchInstaller = async (window: BrowserWindow, installerPath: string): Promise<void> => {
   try {
     const child = spawn(installerPath, [], {
       detached: true,
@@ -216,76 +190,76 @@ const promptAndLaunchInstaller = async (
   }
 };
 
-const checkForNewRelease = async (window: BrowserWindow): Promise<void> => {
+export type ManualUpdateStatus =
+  | 'up_to_date'
+  | 'update_available_closed'
+  | 'update_available_launching';
+
+export interface ManualUpdateResult {
+  status: ManualUpdateStatus;
+  currentVersion: string;
+  latestVersion?: string;
+}
+
+export const checkForUpdateOnce = async (window: BrowserWindow): Promise<ManualUpdateResult> => {
   const release = await fetchLatestRelease();
 
   if (release.draft || release.prerelease) {
-    return;
-  }
-
-  if (alertedTag === release.tag_name) {
-    return;
+    return { status: 'up_to_date', currentVersion: app.getVersion() };
   }
 
   const normalizedLatestVersion = normalizeVersionString(release.tag_name);
   if (!normalizedLatestVersion) {
     console.warn('[AutoUpdate] 無法解析 tag', release.tag_name);
-    return;
+    return { status: 'up_to_date', currentVersion: app.getVersion() };
   }
 
   const normalizedCurrentVersion = normalizeVersionString(app.getVersion());
   if (!normalizedCurrentVersion) {
     console.warn('[AutoUpdate] 無法解析目前版本', app.getVersion());
-    return;
+    return { status: 'up_to_date', currentVersion: app.getVersion() };
   }
 
   if (!isNormalizedVersionNewer(normalizedLatestVersion, normalizedCurrentVersion)) {
-    return;
+    return {
+      status: 'up_to_date',
+      currentVersion: normalizedCurrentVersion,
+      latestVersion: normalizedLatestVersion,
+    };
   }
 
   const asset = release.assets.find(item => item.name === ASSET_NAME);
   if (!asset) {
-    return;
+    return {
+      status: 'up_to_date',
+      currentVersion: normalizedCurrentVersion,
+      latestVersion: normalizedLatestVersion,
+    };
   }
 
   const installerPath = path.join(tmpdir(), `${REPO}-Setup-${normalizedLatestVersion}.exe`);
   await downloadInstaller(asset.browser_download_url, installerPath);
-  alertedTag = release.tag_name;
-  await promptAndLaunchInstaller(window, release, installerPath);
-};
-
-export interface AutoUpdateOptions {
-  checkIntervalMs?: number;
-}
-
-export const startAutoUpdateChecks = (
-  getWindow: () => BrowserWindow | null,
-  options?: AutoUpdateOptions
-): void => {
-  const intervalMs = options?.checkIntervalMs ?? DEFAULT_INTERVAL_MS;
-  let timer: NodeJS.Timeout | null = null;
-
-  const run = async () => {
-    const window = getWindow();
-    if (!window) {
-      return;
-    }
-    try {
-      await checkForNewRelease(window);
-    } catch (error) {
-      console.error('[AutoUpdate]', error);
-    }
-  };
-
-  void run();
-  timer = setInterval(() => {
-    void run();
-  }, intervalMs);
-
-  app.on('before-quit', () => {
-    if (timer) {
-      clearInterval(timer);
-      timer = null;
-    }
+  const { response } = await dialog.showMessageBox(window, {
+    type: 'question',
+    buttons: ['立即更新', '關閉'],
+    defaultId: 0,
+    cancelId: 1,
+    message: `找到新版 ${release.tag_name}`,
+    detail: [release.body, `安裝檔：${ASSET_NAME}`].filter(Boolean).join('\n\n'),
   });
+
+  if (response !== 0) {
+    return {
+      status: 'update_available_closed',
+      currentVersion: normalizedCurrentVersion,
+      latestVersion: normalizedLatestVersion,
+    };
+  }
+
+  await launchInstaller(window, installerPath);
+  return {
+    status: 'update_available_launching',
+    currentVersion: normalizedCurrentVersion,
+    latestVersion: normalizedLatestVersion,
+  };
 };

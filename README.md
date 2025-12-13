@@ -16,9 +16,9 @@
 
 ## 內建站台
 站台清單定義於 `src/shared/websites.ts`：
-- `http://www.zssdmr.dpdns.org`
-- `http://ussr.zssdmr.dpdns.org`
-- `http://pinball.zssdmr.dpdns.org`
+- `https://www.zssdmr.dpdns.org`
+- `https://ussr.zssdmr.dpdns.org`
+- `https://pinball.zssdmr.dpdns.org`
 
 可依需求自行增減與調整（見「自訂/新增網站」）。
 

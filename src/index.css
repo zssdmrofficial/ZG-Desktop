@@ -84,6 +84,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   outline: none;
+  will-change: transform;
   transition: all 0.3s ease;
 }
 
@@ -100,10 +101,6 @@ body {
 .app-header__button:disabled {
   cursor: wait;
   opacity: 0.6;
-}
-
-#back-button {
-  visibility: hidden;
 }
 
 #back-button:hover {

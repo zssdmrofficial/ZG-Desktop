@@ -13,7 +13,7 @@ export interface TargetWebsite {
 export const targetWebsites: TargetWebsite[] = [
   {
     name: '官方網站',
-    url: 'http://www.zssdmr.dpdns.org',
+    url: 'https://www.zssdmr.dpdns.org',
     repository: {
       url: 'https://github.com/zssdmrofficial/zssdmrofficial.github.io.git',
       branch: 'main',
@@ -22,7 +22,7 @@ export const targetWebsites: TargetWebsite[] = [
   },
   {
     name: '紅色宇宙論',
-    url: 'http://ussr.zssdmr.dpdns.org',
+    url: 'https://ussr.zssdmr.dpdns.org',
     repository: {
       url: 'https://github.com/zssdmrofficial/ussr.zssdmrofficial.github.io.git',
       branch: 'main',
@@ -31,7 +31,7 @@ export const targetWebsites: TargetWebsite[] = [
   },
   {
     name: '彈珠答題遊戲',
-    url: 'http://pinball.zssdmr.dpdns.org',
+    url: 'https://pinball.zssdmr.dpdns.org',
     repository: {
       url: 'https://github.com/zssdmrofficial/pinball.zssdmrofficial.github.io.git',
       branch: 'main',
@@ -40,7 +40,7 @@ export const targetWebsites: TargetWebsite[] = [
   },
   {
     name: '思想小助手',
-    url: 'http://chat.zssdmr.dpdns.org',
+    url: 'https://chat.zssdmr.dpdns.org',
     repository: {
       url: 'https://github.com/zssdmrofficial/chat.zssdmrofficial.github.io.git',
       branch: 'main',

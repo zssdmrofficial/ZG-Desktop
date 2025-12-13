@@ -1,4 +1,5 @@
 import type { RefreshSummary } from '../shared/offlineTypes';
+import type { ManualUpdateResult } from '../autoUpdate';
 
 declare global {
   interface Window {
@@ -6,6 +7,10 @@ declare global {
       navigate: (url: string) => void;
       goHome: () => void;
       refreshOfflineCache: () => Promise<RefreshSummary>;
+      checkForUpdates: () => Promise<
+        | { status: 'ok'; result: ManualUpdateResult }
+        | { status: 'error'; message: string }
+      >;
       onShowBackButton: (callback: () => void) => void;
       onHideBackButton: (callback: () => void) => void;
       onShowLoadingIndicator: (callback: () => void) => void;
