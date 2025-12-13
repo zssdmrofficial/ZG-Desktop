@@ -45,6 +45,14 @@ const config: ForgeConfig = {
             js: './src/home/home.ts',
             name: 'home_view',
           },
+          {
+            html: './src/updatePrompt/updatePrompt.html',
+            js: './src/updatePrompt/updatePrompt.ts',
+            name: 'update_prompt',
+            preload: {
+              js: './src/updatePrompt/updatePromptPreload.ts',
+            },
+          },
         ],
       },
     }),

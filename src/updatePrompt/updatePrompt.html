@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZG-Desktop</title>
+</head>
+
+<body>
+  <div class="prompt-shell" role="dialog" aria-modal="true" aria-labelledby="prompt-title">
+    <header class="prompt-titlebar">
+      <div class="prompt-titlebar__title" id="app-name">ZG-Desktop</div>
+      <button id="close-button" class="prompt-titlebar__close" type="button" aria-label="關閉" title="關閉">
+        ×
+      </button>
+    </header>
+
+    <main class="prompt-body">
+      <div class="prompt-hero">
+        <div class="prompt-hero__icon" aria-hidden="true">i</div>
+        <div class="prompt-hero__text">
+          <h1 class="prompt-title" id="prompt-title"></h1>
+          <div class="prompt-meta" id="prompt-meta"></div>
+        </div>
+      </div>
+
+      <section class="prompt-detail" aria-label="詳細資訊">
+        <div class="prompt-detail__content" id="prompt-detail"></div>
+      </section>
+
+      <footer class="prompt-actions">
+        <button id="primary-action" class="prompt-actions__primary" type="button"></button>
+        <button id="secondary-action" class="prompt-actions__secondary" type="button"></button>
+      </footer>
+    </main>
+  </div>
+</body>
+
+</html>

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as fs from 'fs';
 import { promises as fsPromises } from 'fs';
 import * as https from 'https';
@@ -6,6 +6,9 @@ import type { IncomingMessage } from 'http';
 import * as path from 'path';
 import { tmpdir } from 'os';
 import { spawn } from 'child_process';
+
+declare const UPDATE_PROMPT_WEBPACK_ENTRY: string;
+declare const UPDATE_PROMPT_PRELOAD_WEBPACK_ENTRY: string;
 
 const OWNER = 'zssdmrofficial';
 const REPO = 'ZG-Desktop';
@@ -31,6 +34,132 @@ interface GitHubRelease {
     browser_download_url: string;
   }>;
 }
+
+type UpdatePromptAction = 'update' | 'close';
+
+type UpdatePromptData =
+  | {
+      kind: 'update';
+      appName: string;
+      releaseTag: string;
+      body?: string;
+      assetName: string;
+    }
+  | {
+      kind: 'error';
+      appName: string;
+      title: string;
+      detail: string;
+    };
+
+const updatePromptDataByWebContentsId = new Map<number, UpdatePromptData>();
+const updatePromptResolveByWebContentsId = new Map<number, (action: UpdatePromptAction) => void>();
+let updatePromptIpcRegistered = false;
+
+const isSafeExternalUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+};
+
+const ensureUpdatePromptIpcRegistered = (): void => {
+  if (updatePromptIpcRegistered) return;
+  updatePromptIpcRegistered = true;
+
+  ipcMain.handle('update-prompt:get-data', event => {
+    return updatePromptDataByWebContentsId.get(event.sender.id) ?? null;
+  });
+
+  ipcMain.handle('update-prompt:action', (event, action: UpdatePromptAction) => {
+    if (action !== 'update' && action !== 'close') return;
+    const resolve = updatePromptResolveByWebContentsId.get(event.sender.id);
+    if (!resolve) return;
+    resolve(action);
+    updatePromptResolveByWebContentsId.delete(event.sender.id);
+    updatePromptDataByWebContentsId.delete(event.sender.id);
+    try {
+      BrowserWindow.fromWebContents(event.sender)?.close();
+    } catch {
+      // ignore
+    }
+  });
+
+  ipcMain.handle('update-prompt:open-external', async (_event, url: string) => {
+    if (typeof url !== 'string' || !isSafeExternalUrl(url)) return;
+    await shell.openExternal(url);
+  });
+};
+
+const showUpdatePromptWindow = async (
+  parent: BrowserWindow,
+  data: UpdatePromptData
+): Promise<UpdatePromptAction> => {
+  ensureUpdatePromptIpcRegistered();
+
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'assets/icon.ico')
+    : path.join(__dirname, '../../src/assets/icon.ico');
+
+  return new Promise(resolve => {
+    let resolved = false;
+    const promptWindow = new BrowserWindow({
+      width: 760,
+      height: 420,
+      parent,
+      modal: true,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
+      fullscreenable: false,
+      show: false,
+      frame: false,
+      backgroundColor: '#0b0b0e',
+      icon: iconPath,
+      webPreferences: {
+        preload: UPDATE_PROMPT_PRELOAD_WEBPACK_ENTRY,
+        contextIsolation: true,
+      },
+    });
+
+    const webContentsId = promptWindow.webContents.id;
+
+    updatePromptDataByWebContentsId.set(webContentsId, data);
+    updatePromptResolveByWebContentsId.set(webContentsId, action => {
+      if (resolved) return;
+      resolved = true;
+      resolve(action);
+    });
+
+    const cleanup = () => {
+      updatePromptResolveByWebContentsId.delete(webContentsId);
+      updatePromptDataByWebContentsId.delete(webContentsId);
+    };
+
+    const finish = (action: UpdatePromptAction) => {
+      cleanup();
+      if (!resolved) {
+        resolved = true;
+        resolve(action);
+      }
+    };
+
+    promptWindow.on('closed', () => finish('close'));
+    promptWindow.once('ready-to-show', () => promptWindow.show());
+
+    void promptWindow.loadURL(UPDATE_PROMPT_WEBPACK_ENTRY).catch(error => {
+      console.error('[AutoUpdate] Failed to load update prompt', error);
+      finish('close');
+      try {
+        promptWindow.close();
+      } catch {
+        // ignore
+      }
+    });
+  });
+};
 
 const normalizeVersionString = (value: string): string | null => {
   if (!value) return null;
@@ -181,10 +310,10 @@ const launchInstaller = async (window: BrowserWindow, installerPath: string): Pr
     child.unref();
     app.quit();
   } catch (error) {
-    void dialog.showMessageBox(window, {
-      type: 'error',
-      buttons: ['關閉'],
-      message: '啟動安裝程式失敗',
+    await showUpdatePromptWindow(window, {
+      kind: 'error',
+      appName: REPO,
+      title: '啟動安裝程式失敗',
       detail: String(error),
     });
   }
@@ -239,16 +368,16 @@ export const checkForUpdateOnce = async (window: BrowserWindow): Promise<ManualU
 
   const installerPath = path.join(tmpdir(), `${REPO}-Setup-${normalizedLatestVersion}.exe`);
   await downloadInstaller(asset.browser_download_url, installerPath);
-  const { response } = await dialog.showMessageBox(window, {
-    type: 'question',
-    buttons: ['立即更新', '關閉'],
-    defaultId: 0,
-    cancelId: 1,
-    message: `找到新版 ${release.tag_name}`,
-    detail: [release.body, `安裝檔：${ASSET_NAME}`].filter(Boolean).join('\n\n'),
+
+  const action = await showUpdatePromptWindow(window, {
+    kind: 'update',
+    appName: REPO,
+    releaseTag: release.tag_name,
+    body: release.body,
+    assetName: ASSET_NAME,
   });
 
-  if (response !== 0) {
+  if (action !== 'update') {
     return {
       status: 'update_available_closed',
       currentVersion: normalizedCurrentVersion,

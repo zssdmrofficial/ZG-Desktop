@@ -18,6 +18,11 @@ declare global {
       onOfflineMode: (callback: () => void) => void;
       onOnlineMode: (callback: () => void) => void;
     };
+    updatePromptAPI: {
+      getData: () => Promise<unknown>;
+      action: (action: 'update' | 'close') => Promise<void>;
+      openExternal: (url: string) => Promise<void>;
+    };
   }
 }
 
