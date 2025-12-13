@@ -1,13 +1,9 @@
 import * as path from 'path';
 import * as https from 'https';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
 import { promises as fs } from 'fs';
 import AdmZip from 'adm-zip';
 import type { TargetWebsite } from './shared/websites';
 import type { RefreshSummary } from './shared/offlineTypes';
-
-const execFileAsync = promisify(execFile);
 
 export class OfflineCacheManager {
   private cacheRoot: string | null = null;
@@ -15,7 +11,6 @@ export class OfflineCacheManager {
   private readonly originToSite = new Map<string, TargetWebsite>();
   private readonly originToFolder = new Map<string, string>();
   private readonly hostToFolder = new Map<string, string>();
-  private gitAvailable: boolean | null = null;
   private refreshTask: Promise<RefreshSummary> | null = null;
 
   constructor(
@@ -109,11 +104,7 @@ export class OfflineCacheManager {
     await fs.rm(tempDestination, { recursive: true, force: true });
 
     try {
-      if (await this.hasGit()) {
-        await this.syncWithGit(site, destination, tempDestination);
-      } else {
-        await this.syncViaGithubArchive(site, destination, tempDestination);
-      }
+      await this.syncViaGithubArchive(site, destination, tempDestination);
 
       const entryPath = path.join(destination, this.getEntryFile(site));
       if (!(await this.pathExists(entryPath))) {
@@ -122,66 +113,6 @@ export class OfflineCacheManager {
       this.offlineIndex.set(this.getOrigin(site.url), entryPath);
     } finally {
       await fs.rm(tempDestination, { recursive: true, force: true });
-    }
-  }
-
-  private async hasGit(): Promise<boolean> {
-    if (this.gitAvailable !== null) {
-      return this.gitAvailable;
-    }
-
-    try {
-      await execFileAsync('git', ['--version']);
-      this.gitAvailable = true;
-    } catch {
-      this.gitAvailable = false;
-      console.warn('[OfflineCache] Git executable not found. Falling back to GitHub archive downloads.');
-    }
-
-    return this.gitAvailable;
-  }
-
-  private async syncWithGit(site: TargetWebsite, destination: string, tempDestination: string): Promise<void> {
-    const { url, branch = 'main' } = site.repository;
-    const repoExists = await this.isGitRepository(destination);
-
-    if (!repoExists) {
-      await this.cloneFreshRepository(url, branch, destination, tempDestination);
-      return;
-    }
-
-    try {
-      await this.runGitCommand(['fetch', '--depth', '1', 'origin', branch], destination);
-      await this.runGitCommand(['checkout', '--force', '-B', branch, `origin/${branch}`], destination);
-    } catch (error) {
-      if (error instanceof Error && /not a git repository/i.test(error.message)) {
-        await this.cloneFreshRepository(url, branch, destination, tempDestination);
-        return;
-      }
-      throw error;
-    }
-  }
-
-  private async cloneFreshRepository(
-    url: string,
-    branch: string,
-    destination: string,
-    tempDestination: string,
-  ): Promise<void> {
-    await fs.rm(tempDestination, { recursive: true, force: true });
-    await this.runGitCommand(['clone', '--depth', '1', '--single-branch', '--branch', branch, url, tempDestination]);
-    await fs.rm(destination, { recursive: true, force: true });
-    await fs.rename(tempDestination, destination);
-  }
-
-  private async runGitCommand(args: string[], cwd?: string): Promise<void> {
-    try {
-      await execFileAsync('git', args, { cwd });
-    } catch (error) {
-      const command = `git ${args.join(' ')}`;
-      throw new Error(
-        `Failed to execute "${command}"${cwd ? ` (cwd: ${cwd})` : ''}: ${error instanceof Error ? error.message : String(error)}`,
-      );
     }
   }
 
@@ -270,10 +201,6 @@ export class OfflineCacheManager {
 
   private getEntryFile(site: TargetWebsite): string {
     return site.repository.entryFile ?? 'index.html';
-  }
-
-  private async isGitRepository(folder: string): Promise<boolean> {
-    return this.pathExists(path.join(folder, '.git'));
   }
 
   private getOrigin(url: string): string {

@@ -62,8 +62,7 @@ npm run lint
 ## 離線快取機制
 - 快取根目錄：`<使用者資料夾>/offline-cache`（實際路徑依作業系統由 `app.getPath('userData')` 決定）。
 - 同步策略：
-  - 具備 Git：以 `git clone/fetch/checkout` 進行增量同步。
-  - 無 Git：改以 `https://codeload.github.com/...` 下載壓縮檔並解壓。
+  - 統一以 `https://codeload.github.com/...` 下載壓縮檔並解壓（不再使用 Git）。
 - 入口檔案：每個站台可在設定中指定 `entryFile`（預設 `index.html`）。
 - 自訂協定：`app-offline://<host>/<encoded-path>`，後端嚴格檢查路徑避免目錄跳脫，僅能存取對應站台快取根目錄下的檔案。
 
@@ -76,7 +75,7 @@ export interface TargetWebsite {
   name: string;
   url: string; // 用於線上導覽與離線映射（以 origin 辨識）
   repository: {
-    url: string;      // Git (HTTPS 或 SSH) 倉庫 URL（亦可為 .git 結尾）
+    url: string;      // GitHub 倉庫 URL（HTTPS 或 SSH，亦可為 .git 結尾）
     branch?: string;  // 預設 main
     entryFile?: string; // 預設 index.html
   };
@@ -118,13 +117,12 @@ export const targetWebsites: TargetWebsite[] = [
 
 ## 打包與圖示
 - 應用圖示與資源置於 `src/assets/`，Forge 會在打包時帶入。
-- Windows 使用 Squirrel；也提供 Debian/RPM 與 macOS ZIP 封裝設定。
+- 統一使用 ZIP 封裝設定。
 
 
 ## 疑難排解
 - 無法更新離線快取：
   - 確認首次啟動時網路可用。
-  - 安裝 Git 可提升同步速度；未安裝會自動改用 GitHub 壓縮檔。
 - 離線頁面 404：確認該站台設定的 `entryFile` 在快取資料夾內確實存在。
 - 安全性：外部內容載入於隔離的 `BrowserView`；自訂協定限制於各站台快取根目錄內。
 
