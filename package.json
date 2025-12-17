@@ -1,7 +1,7 @@
 {
   "name": "zg-desktop",
   "productName": "ZG-Desktop",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "張師社會主義民主共和國官方網站桌面版",
   "main": ".webpack/main",
   "scripts": {
