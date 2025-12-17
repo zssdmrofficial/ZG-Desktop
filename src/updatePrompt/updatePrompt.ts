@@ -13,27 +13,26 @@ type DownloadCompletePayload = { ok: boolean };
 
 type PromptData =
   | {
-      kind: 'update';
-      appName: string;
-      releaseTag: string;
-      body?: string;
-      assetName: string;
-      expectedBytes?: number;
-    }
+    kind: 'update';
+    appName: string;
+    releaseTag: string;
+    body?: string;
+    assetName: string;
+    expectedBytes?: number;
+  }
   | {
-      kind: 'error';
-      appName: string;
-      title: string;
-      detail: string;
-    };
+    kind: 'error';
+    appName: string;
+    title: string;
+    detail: string;
+  };
 
 type MarkedApi = {
   parse: (markdown: string, options?: Record<string, unknown>) => string;
   setOptions?: (options: Record<string, unknown>) => void;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const markedModule = require('./vendor/marked.min.js') as unknown as Partial<MarkedApi> & { marked?: unknown };
+const markedModule = require('./vendor/marked.js') as unknown as Partial<MarkedApi> & { marked?: unknown };
 
 const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, char => {
@@ -292,4 +291,4 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
-export {};
+export { };
