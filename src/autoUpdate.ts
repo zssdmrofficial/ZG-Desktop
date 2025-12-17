@@ -32,10 +32,16 @@ interface GitHubRelease {
   assets: Array<{
     name: string;
     browser_download_url: string;
+    size?: number;
   }>;
 }
 
-type UpdatePromptAction = 'update' | 'close';
+type UpdatePromptAction = 'close';
+
+interface UpdatePromptOutcome {
+  action: UpdatePromptAction;
+  downloadStarted: boolean;
+}
 
 type UpdatePromptData =
   | {
@@ -44,6 +50,8 @@ type UpdatePromptData =
       releaseTag: string;
       body?: string;
       assetName: string;
+      downloadUrl: string;
+      expectedBytes?: number;
     }
   | {
       kind: 'error';
@@ -54,6 +62,8 @@ type UpdatePromptData =
 
 const updatePromptDataByWebContentsId = new Map<number, UpdatePromptData>();
 const updatePromptResolveByWebContentsId = new Map<number, (action: UpdatePromptAction) => void>();
+const updatePromptDownloadStartedByWebContentsId = new Map<number, boolean>();
+const updatePromptInstallerPathByWebContentsId = new Map<number, string>();
 let updatePromptIpcRegistered = false;
 
 const isSafeExternalUrl = (url: string): boolean => {
@@ -73,17 +83,82 @@ const ensureUpdatePromptIpcRegistered = (): void => {
     return updatePromptDataByWebContentsId.get(event.sender.id) ?? null;
   });
 
-  ipcMain.handle('update-prompt:action', (event, action: UpdatePromptAction) => {
-    if (action !== 'update' && action !== 'close') return;
+  ipcMain.handle('update-prompt:close', event => {
     const resolve = updatePromptResolveByWebContentsId.get(event.sender.id);
     if (!resolve) return;
-    resolve(action);
+    resolve('close');
     updatePromptResolveByWebContentsId.delete(event.sender.id);
     updatePromptDataByWebContentsId.delete(event.sender.id);
+    updatePromptDownloadStartedByWebContentsId.delete(event.sender.id);
+    updatePromptInstallerPathByWebContentsId.delete(event.sender.id);
     try {
       BrowserWindow.fromWebContents(event.sender)?.close();
     } catch {
       // ignore
+    }
+  });
+
+  ipcMain.handle('update-prompt:start-download', async event => {
+    const webContentsId = event.sender.id;
+    const data = updatePromptDataByWebContentsId.get(webContentsId);
+    if (!data || data.kind !== 'update') return;
+
+    if (updatePromptDownloadStartedByWebContentsId.get(webContentsId)) return;
+    updatePromptDownloadStartedByWebContentsId.set(webContentsId, true);
+
+    const installerPath = path.join(tmpdir(), `${REPO}-Setup-${normalizeVersionString(data.releaseTag) ?? 'latest'}.exe`);
+
+    const sendProgress = (payload: {
+      receivedBytes: number;
+      totalBytes?: number;
+      percent?: number;
+      label?: string;
+    }) => {
+      try {
+        event.sender.send('update-prompt:download-progress', payload);
+      } catch {
+        // ignore (window closed)
+      }
+    };
+
+    try {
+      await downloadInstaller(data.downloadUrl, installerPath, sendProgress);
+      updatePromptInstallerPathByWebContentsId.set(webContentsId, installerPath);
+      sendProgress({ receivedBytes: 0, totalBytes: 0, percent: 100, label: '下載完成，準備安裝' });
+      try {
+        event.sender.send('update-prompt:download-complete', { ok: true });
+      } catch {
+        // ignore
+      }
+    } catch (error) {
+      try {
+        event.sender.send('update-prompt:download-error', { message: String(error) });
+      } catch {
+        // ignore
+      }
+      updatePromptDownloadStartedByWebContentsId.set(webContentsId, false);
+    }
+  });
+
+  ipcMain.handle('update-prompt:install', async event => {
+    const webContentsId = event.sender.id;
+    const installerPath = updatePromptInstallerPathByWebContentsId.get(webContentsId);
+    if (!installerPath) return;
+
+    try {
+      event.sender.send('update-prompt:installing', { ok: true });
+    } catch {
+      // ignore
+    }
+
+    try {
+      await launchInstaller(installerPath);
+    } catch (error) {
+      try {
+        event.sender.send('update-prompt:install-error', { message: String(error) });
+      } catch {
+        // ignore
+      }
     }
   });
 
@@ -93,10 +168,7 @@ const ensureUpdatePromptIpcRegistered = (): void => {
   });
 };
 
-const showUpdatePromptWindow = async (
-  parent: BrowserWindow,
-  data: UpdatePromptData
-): Promise<UpdatePromptAction> => {
+const showUpdatePromptWindow = async (parent: BrowserWindow, data: UpdatePromptData): Promise<UpdatePromptOutcome> => {
   ensureUpdatePromptIpcRegistered();
 
   const iconPath = app.isPackaged
@@ -127,22 +199,27 @@ const showUpdatePromptWindow = async (
     const webContentsId = promptWindow.webContents.id;
 
     updatePromptDataByWebContentsId.set(webContentsId, data);
+    updatePromptDownloadStartedByWebContentsId.set(webContentsId, false);
+    updatePromptInstallerPathByWebContentsId.delete(webContentsId);
     updatePromptResolveByWebContentsId.set(webContentsId, action => {
       if (resolved) return;
       resolved = true;
-      resolve(action);
+      resolve({ action, downloadStarted: Boolean(updatePromptDownloadStartedByWebContentsId.get(webContentsId)) });
     });
 
     const cleanup = () => {
       updatePromptResolveByWebContentsId.delete(webContentsId);
       updatePromptDataByWebContentsId.delete(webContentsId);
+      updatePromptDownloadStartedByWebContentsId.delete(webContentsId);
+      updatePromptInstallerPathByWebContentsId.delete(webContentsId);
     };
 
     const finish = (action: UpdatePromptAction) => {
+      const downloadStarted = Boolean(updatePromptDownloadStartedByWebContentsId.get(webContentsId));
       cleanup();
       if (!resolved) {
         resolved = true;
-        resolve(action);
+        resolve({ action, downloadStarted });
       }
     };
 
@@ -255,7 +332,11 @@ const fetchLatestRelease = async (): Promise<GitHubRelease> => {
   return fetchJson<GitHubRelease>(API_URL);
 };
 
-const downloadInstaller = async (url: string, destination: string): Promise<void> => {
+const downloadInstaller = async (
+  url: string,
+  destination: string,
+  onProgress?: (payload: { receivedBytes: number; totalBytes?: number; percent?: number; label?: string }) => void
+): Promise<void> => {
   if (fs.existsSync(destination)) {
     await fsPromises.unlink(destination);
   }
@@ -275,7 +356,33 @@ const downloadInstaller = async (url: string, destination: string): Promise<void
         return;
       }
 
+      const totalBytesHeader = response.headers['content-length'];
+      const totalBytes =
+        typeof totalBytesHeader === 'string' ? Number.parseInt(totalBytesHeader, 10) : undefined;
+
+      let receivedBytes = 0;
+      let lastEmit = 0;
+      const emit = (force = false) => {
+        if (!onProgress) return;
+        const now = Date.now();
+        if (!force && now - lastEmit < 120) return;
+        lastEmit = now;
+        const percent = totalBytes && totalBytes > 0 ? Math.min(100, (receivedBytes / totalBytes) * 100) : undefined;
+        onProgress({
+          receivedBytes,
+          totalBytes,
+          percent,
+          label: percent !== undefined ? `下載中... ${percent.toFixed(1)}%` : '下載中...',
+        });
+      };
+
       const fileStream = fs.createWriteStream(destination);
+
+      response.on('data', (chunk: Buffer) => {
+        receivedBytes += chunk.length;
+        emit();
+      });
+
       response.pipe(fileStream);
 
       fileStream.on('finish', () => {
@@ -284,24 +391,25 @@ const downloadInstaller = async (url: string, destination: string): Promise<void
             cleanupAndReject(err);
             return;
           }
+          emit(true);
           resolve();
         });
       });
 
-        response.on('error', (error: Error) => {
-          cleanupAndReject(error);
-        });
+      response.on('error', (error: Error) => {
+        cleanupAndReject(error);
+      });
 
-        fileStream.on('error', (error: Error) => {
-          cleanupAndReject(error);
-        });
+      fileStream.on('error', (error: Error) => {
+        cleanupAndReject(error);
+      });
     };
 
     void run().catch(error => cleanupAndReject(error instanceof Error ? error : new Error(String(error))));
   });
 };
 
-const launchInstaller = async (window: BrowserWindow, installerPath: string): Promise<void> => {
+const launchInstaller = async (installerPath: string): Promise<void> => {
   try {
     const child = spawn(installerPath, [], {
       detached: true,
@@ -310,12 +418,7 @@ const launchInstaller = async (window: BrowserWindow, installerPath: string): Pr
     child.unref();
     app.quit();
   } catch (error) {
-    await showUpdatePromptWindow(window, {
-      kind: 'error',
-      appName: REPO,
-      title: '啟動安裝程式失敗',
-      detail: String(error),
-    });
+    throw error instanceof Error ? error : new Error(String(error));
   }
 };
 
@@ -366,28 +469,18 @@ export const checkForUpdateOnce = async (window: BrowserWindow): Promise<ManualU
     };
   }
 
-  const installerPath = path.join(tmpdir(), `${REPO}-Setup-${normalizedLatestVersion}.exe`);
-  await downloadInstaller(asset.browser_download_url, installerPath);
-
-  const action = await showUpdatePromptWindow(window, {
+  const outcome = await showUpdatePromptWindow(window, {
     kind: 'update',
     appName: REPO,
     releaseTag: release.tag_name,
     body: release.body,
     assetName: ASSET_NAME,
+    downloadUrl: asset.browser_download_url,
+    expectedBytes: asset.size,
   });
 
-  if (action !== 'update') {
-    return {
-      status: 'update_available_closed',
-      currentVersion: normalizedCurrentVersion,
-      latestVersion: normalizedLatestVersion,
-    };
-  }
-
-  await launchInstaller(window, installerPath);
   return {
-    status: 'update_available_launching',
+    status: outcome.downloadStarted ? 'update_available_launching' : 'update_available_closed',
     currentVersion: normalizedCurrentVersion,
     latestVersion: normalizedLatestVersion,
   };

@@ -20,8 +20,15 @@ declare global {
     };
     updatePromptAPI: {
       getData: () => Promise<unknown>;
-      action: (action: 'update' | 'close') => Promise<void>;
+      close: () => Promise<void>;
+      startDownload: () => Promise<void>;
+      install: () => Promise<void>;
       openExternal: (url: string) => Promise<void>;
+      onDownloadProgress: (callback: (payload: unknown) => void) => () => void;
+      onDownloadError: (callback: (payload: unknown) => void) => () => void;
+      onDownloadComplete: (callback: (payload: unknown) => void) => () => void;
+      onInstalling: (callback: (payload: unknown) => void) => () => void;
+      onInstallError: (callback: (payload: unknown) => void) => () => void;
     };
   }
 }

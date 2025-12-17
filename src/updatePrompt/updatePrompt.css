@@ -105,6 +105,7 @@ body {
   flex-direction: column;
   padding: 22px 22px 18px;
   gap: 14px;
+  min-height: 0;
 }
 
 .prompt-hero {
@@ -153,6 +154,7 @@ body {
   backdrop-filter: blur(8px);
   padding: 14px 16px;
   overflow: hidden;
+  min-height: 0;
 }
 
 .prompt-detail__content {
@@ -162,6 +164,9 @@ body {
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.92);
   white-space: normal;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 .prompt-detail__content p {
@@ -191,6 +196,41 @@ body {
   display: flex;
   gap: 12px;
   justify-content: flex-start;
+  align-items: center;
+}
+
+.prompt-progress {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.prompt-progress__label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.80);
+  letter-spacing: 0.2px;
+}
+
+.prompt-progress__track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.prompt-progress__bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 136, 136, 0.55), rgba(255, 255, 255, 0.22));
+  box-shadow: 0 0 16px rgba(255, 136, 136, 0.25);
+  transition: width 0.12s ease;
 }
 
 .prompt-actions__primary,
@@ -237,25 +277,30 @@ body {
   transform: none;
 }
 
-::-webkit-scrollbar {
+.prompt-detail__content::-webkit-scrollbar {
   width: 10px;
+  height: 10px;
   background: transparent;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+.prompt-detail__content::-webkit-scrollbar-track {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
-::-webkit-scrollbar-thumb {
+.prompt-detail__content::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
-  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
-  transition: background-color 0.25s ease;
+  -webkit-backdrop-filter: blur(6px);
+  transition: background-color 0.25s ease, transform 0.25s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
+.prompt-detail__content::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 255, 255, 0.25);
+  transform: scaleX(1.15);
 }
