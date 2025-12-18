@@ -257,7 +257,6 @@ const bootstrap = async () => {
   await offlineCacheManager.initializeFromDisk();
   await registerOfflineProtocol();
   createWindow();
-  void offlineCacheManager.refreshAllSites();
 };
 
 const registerOfflineProtocol = async (): Promise<void> => {
