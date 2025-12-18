@@ -47,6 +47,15 @@ export const targetWebsites: TargetWebsite[] = [
       entryFile: 'index.html',
     },
   },
+  {
+    name: 'AI不花錢，努力搞科研',
+    url: 'https://chatgtp.zssdmr.dpdns.org',
+    repository: {
+      url: 'https://github.com/zssdmrofficial/chatgtp.zssdmrofficial.github.io.git',
+      branch: 'main',
+      entryFile: 'index.html',
+    },
+  },
 ];
 
 export const NAVIGATION_TIMEOUT_MS = 5_000;
