@@ -97,4 +97,5 @@ Output/
 .vs/
 native/**/build/*
 !native/**/build/
+!native/**/build/.gitkeep
 *.exe
