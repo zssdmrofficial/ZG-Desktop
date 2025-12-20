@@ -1,5 +1,8 @@
 import { app, BrowserWindow, ipcMain, BrowserView, protocol } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
+import { promises as fsPromises } from 'fs';
+import { spawn, type ChildProcess } from 'child_process';
 import { OfflineCacheManager } from './offlineCache';
 import { targetWebsites, NAVIGATION_TIMEOUT_MS } from './shared/websites';
 import { checkForUpdateOnce } from './autoUpdate';
@@ -7,6 +10,8 @@ import { checkForUpdateOnce } from './autoUpdate';
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 declare const HOME_VIEW_WEBPACK_ENTRY: string;
+declare const SETTINGS_PROMPT_WEBPACK_ENTRY: string;
+declare const SETTINGS_PROMPT_PRELOAD_WEBPACK_ENTRY: string;
 
 const HEADER_HEIGHT = 50;
 const DEFAULT_WINDOW_WIDTH = 1280;
@@ -32,6 +37,62 @@ let homeView: BrowserView | null = null;
 let externalView: BrowserView | null = null;
 let activeView: BrowserView | null = null;
 let isLoadingUrl = false;
+let settingsPromptWindow: BrowserWindow | null = null;
+let autoUpdateEnabled = false;
+let settingsPromptIpcRegistered = false;
+let updateHelperProcess: ChildProcess | null = null;
+
+const getAutoUpdateConfigPath = (): string => path.join(app.getPath('userData'), 'auto-update.json');
+
+const readAutoUpdateConfig = async (): Promise<boolean> => {
+  try {
+    const raw = await fsPromises.readFile(getAutoUpdateConfigPath(), 'utf8');
+    const parsed = JSON.parse(raw) as { enabled?: boolean };
+    return Boolean(parsed.enabled);
+  } catch {
+    return false;
+  }
+};
+
+const writeAutoUpdateConfig = async (enabled: boolean): Promise<void> => {
+  await fsPromises.mkdir(app.getPath('userData'), { recursive: true });
+  const payload = {
+    enabled: Boolean(enabled),
+    updatedAt: new Date().toISOString(),
+  };
+  await fsPromises.writeFile(getAutoUpdateConfigPath(), JSON.stringify(payload, null, 2), 'utf8');
+};
+
+const getUpdateHelperPath = (): string => {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'update-helper', 'ZG-UpdateHelper.exe');
+  }
+  return path.join(__dirname, '../../resources/update-helper/ZG-UpdateHelper.exe');
+};
+
+const launchUpdateHelper = (): void => {
+  if (updateHelperProcess && !updateHelperProcess.killed) return;
+  const helperPath = getUpdateHelperPath();
+  if (!fs.existsSync(helperPath)) {
+    console.warn(`[AutoUpdate] Update helper not found at ${helperPath}`);
+    return;
+  }
+  updateHelperProcess = spawn(helperPath, [], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  updateHelperProcess.unref();
+};
+
+const stopUpdateHelper = (): void => {
+  if (!updateHelperProcess || updateHelperProcess.killed) return;
+  try {
+    updateHelperProcess.kill();
+  } catch {
+    // ignore
+  }
+  updateHelperProcess = null;
+};
 
 const createWindow = (): void => {
   const iconPath = app.isPackaged
@@ -110,6 +171,85 @@ const resizeActiveView = () => {
   };
 
   activeView.setBounds(viewBounds);
+};
+
+const ensureSettingsPromptIpcRegistered = (): void => {
+  if (settingsPromptIpcRegistered) return;
+  settingsPromptIpcRegistered = true;
+
+  ipcMain.handle('settings-prompt:get-data', () => ({
+    appName: app.getName(),
+    appVersion: app.getVersion(),
+    autoUpdateEnabled,
+  }));
+
+  ipcMain.handle('settings-prompt:close', event => {
+    try {
+      BrowserWindow.fromWebContents(event.sender)?.close();
+    } catch {
+      // ignore
+    }
+  });
+
+  ipcMain.handle('settings-prompt:set-auto-update', async (_event, enabled: boolean) => {
+    autoUpdateEnabled = Boolean(enabled);
+    await writeAutoUpdateConfig(autoUpdateEnabled);
+    if (autoUpdateEnabled) {
+      launchUpdateHelper();
+    } else {
+      stopUpdateHelper();
+    }
+    return autoUpdateEnabled;
+  });
+};
+
+const openSettingsPromptWindow = async (): Promise<void> => {
+  if (!mainWindow) return;
+
+  if (settingsPromptWindow) {
+    settingsPromptWindow.focus();
+    return;
+  }
+
+  ensureSettingsPromptIpcRegistered();
+
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'assets/icon.ico')
+    : path.join(__dirname, '../../src/assets/icon.ico');
+
+  settingsPromptWindow = new BrowserWindow({
+    width: 760,
+    height: 460,
+    parent: mainWindow,
+    modal: true,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    show: false,
+    frame: false,
+    backgroundColor: '#0b0b0e',
+    icon: iconPath,
+    webPreferences: {
+      preload: SETTINGS_PROMPT_PRELOAD_WEBPACK_ENTRY,
+      contextIsolation: true,
+    },
+  });
+
+  settingsPromptWindow.on('closed', () => {
+    settingsPromptWindow = null;
+  });
+
+  settingsPromptWindow.once('ready-to-show', () => settingsPromptWindow?.show());
+
+  void settingsPromptWindow.loadURL(SETTINGS_PROMPT_WEBPACK_ENTRY).catch(error => {
+    console.error('[SettingsPrompt] Failed to load settings prompt', error);
+    try {
+      settingsPromptWindow?.close();
+    } catch {
+      // ignore
+    }
+  });
 };
 
 type NavigationResult = 'online' | 'timeout';
@@ -240,23 +380,32 @@ ipcMain.on('go-back-home', () => {
 
 ipcMain.handle('refresh-offline-cache', async () => offlineCacheManager.refreshAllSites());
 
-ipcMain.handle('check-for-updates', async () => {
+ipcMain.handle('check-for-updates', async event => {
   if (!mainWindow) {
     return { status: 'error', message: 'Main window is not ready.' } as const;
   }
 
   try {
-    const result = await checkForUpdateOnce(mainWindow);
+    const parentWindow = BrowserWindow.fromWebContents(event.sender) ?? mainWindow;
+    const result = await checkForUpdateOnce(parentWindow);
     return { status: 'ok', result } as const;
   } catch (error) {
     return { status: 'error', message: String(error) } as const;
   }
 });
 
+ipcMain.handle('open-settings-prompt', async () => {
+  await openSettingsPromptWindow();
+});
+
 const bootstrap = async () => {
   await offlineCacheManager.initializeFromDisk();
   await registerOfflineProtocol();
+  autoUpdateEnabled = await readAutoUpdateConfig();
   createWindow();
+  if (autoUpdateEnabled) {
+    launchUpdateHelper();
+  }
 };
 
 const registerOfflineProtocol = async (): Promise<void> => {

@@ -42,7 +42,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const backButton = document.getElementById('back-button');
   const loadingIndicator = document.getElementById('loading-indicator');
   const refreshButton = document.getElementById('refresh-button') as HTMLButtonElement | null;
-  const checkUpdateButton = document.getElementById('check-update-button') as HTMLButtonElement | null;
+  const settingsButton = document.getElementById('settings-button') as HTMLButtonElement | null;
   const offlineIndicator = document.getElementById('offline-indicator');
 
   if (backButton) {
@@ -97,44 +97,8 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (checkUpdateButton) {
-    const defaultLabel = checkUpdateButton.textContent ?? '檢查更新';
-    checkUpdateButton.dataset.defaultLabel = defaultLabel;
-    checkUpdateButton.title = '檢查更新';
-
-    checkUpdateButton.addEventListener('click', async () => {
-      checkUpdateButton.disabled = true;
-      checkUpdateButton.textContent = '檢查中...';
-      checkUpdateButton.title = '正在檢查更新...';
-
-      try {
-        const response = await window.electronAPI.checkForUpdates();
-        if (response.status === 'error') {
-          checkUpdateButton.textContent = '檢查失敗';
-          checkUpdateButton.title = response.message;
-          return;
-        }
-
-        const { result } = response;
-        if (result.status === 'up_to_date') {
-          checkUpdateButton.textContent = '已是最新';
-          checkUpdateButton.title = `目前版本 ${result.currentVersion}`;
-        } else {
-          checkUpdateButton.textContent = '有新版';
-          checkUpdateButton.title = `找到新版 ${result.latestVersion ?? ''}`.trim();
-        }
-      } catch (error) {
-        console.error('Failed to check for updates', error);
-        checkUpdateButton.textContent = '檢查失敗';
-        checkUpdateButton.title = String(error);
-      } finally {
-        setTimeout(() => {
-          checkUpdateButton.textContent = checkUpdateButton.dataset.defaultLabel ?? '檢查更新';
-          checkUpdateButton.title = '檢查更新';
-        }, 2000);
-        checkUpdateButton.disabled = false;
-      }
-    });
+  if (settingsButton) {
+    settingsButton.addEventListener('click', () => void window.electronAPI.openSettingsPrompt());
   }
 
   if (offlineIndicator) {

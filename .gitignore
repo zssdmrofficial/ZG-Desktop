@@ -92,3 +92,9 @@ typings/
 out/
 
 Output/
+
+# C/C++ (CMake/Visual Studio)
+.vs/
+native/**/build/*
+!native/**/build/
+*.exe

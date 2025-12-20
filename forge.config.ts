@@ -15,7 +15,8 @@ const config: ForgeConfig = {
     asar: true,
     icon: './src/assets/icon',
     extraResource: [
-      './src/assets'
+      './src/assets',
+      './resources/update-helper'
     ]
   },
   rebuildConfig: {},
@@ -51,6 +52,14 @@ const config: ForgeConfig = {
             name: 'update_prompt',
             preload: {
               js: './src/updatePrompt/updatePromptPreload.ts',
+            },
+          },
+          {
+            html: './src/settingsPrompt/settingsPrompt.html',
+            js: './src/settingsPrompt/settingsPrompt.ts',
+            name: 'settings_prompt',
+            preload: {
+              js: './src/settingsPrompt/settingsPromptPreload.ts',
             },
           },
         ],

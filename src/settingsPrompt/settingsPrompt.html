@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZG-Desktop</title>
+</head>
+
+<body>
+  <div class="prompt-shell" role="dialog" aria-modal="true" aria-labelledby="prompt-title">
+    <header class="prompt-titlebar">
+      <div class="prompt-titlebar__title" id="app-name">ZG-Desktop</div>
+      <button id="close-button" class="prompt-titlebar__close" type="button" aria-label="關閉" title="關閉">
+        ×
+      </button>
+    </header>
+
+    <main class="prompt-body">
+      <div class="prompt-hero">
+        <div class="prompt-hero__icon" aria-hidden="true">S</div>
+        <div class="prompt-hero__text">
+          <h1 class="prompt-title" id="prompt-title">設定</h1>
+          <div class="prompt-meta" id="prompt-meta"></div>
+        </div>
+      </div>
+
+      <section class="prompt-detail" aria-label="設定內容">
+        <div class="prompt-detail__content">
+          <div class="settings-group">
+            <div class="settings-item">
+              <div class="settings-item__text">
+                <div class="settings-item__title">檢查更新</div>
+                <div class="settings-item__meta" id="check-update-status">透過手動檢查確認最新版本。</div>
+              </div>
+              <button id="settings-check-update" class="prompt-actions__secondary settings-action" type="button">
+                → 檢查更新
+              </button>
+            </div>
+
+            <div class="settings-item">
+              <div class="settings-item__text">
+                <div class="settings-item__title">自動更新</div>
+                <div class="settings-item__meta" id="auto-update-status">目前僅記錄設定偏好。</div>
+              </div>
+              <button id="auto-update-toggle" class="settings-toggle" type="button" role="switch" aria-checked="false">
+                <span class="settings-toggle__track">
+                  <span class="settings-toggle__thumb"></span>
+                </span>
+                <span class="settings-toggle__label" id="auto-update-label">關閉</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="prompt-actions">
+        <button id="close-action" class="prompt-actions__secondary" type="button">→ 關閉</button>
+      </footer>
+    </main>
+  </div>
+</body>
+
+</html>

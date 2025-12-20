@@ -11,12 +11,22 @@ declare global {
         | { status: 'ok'; result: ManualUpdateResult }
         | { status: 'error'; message: string }
       >;
+      openSettingsPrompt: () => Promise<void>;
       onShowBackButton: (callback: () => void) => void;
       onHideBackButton: (callback: () => void) => void;
       onShowLoadingIndicator: (callback: () => void) => void;
       onHideLoadingIndicator: (callback: () => void) => void;
       onOfflineMode: (callback: () => void) => void;
       onOnlineMode: (callback: () => void) => void;
+    };
+    settingsPromptAPI: {
+      getData: () => Promise<unknown>;
+      close: () => Promise<void>;
+      checkForUpdates: () => Promise<
+        | { status: 'ok'; result: ManualUpdateResult }
+        | { status: 'error'; message: string }
+      >;
+      setAutoUpdateEnabled: (enabled: boolean) => Promise<boolean>;
     };
     updatePromptAPI: {
       getData: () => Promise<unknown>;
