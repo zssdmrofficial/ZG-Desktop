@@ -608,7 +608,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 
     CheckForUpdatesAndInstall();
 
-    for (int minute = 0; minute < 3; ++minute) {
+    for (int minute = 0; minute < 2; ++minute) {
       std::this_thread::sleep_for(std::chrono::minutes(1));
       if (!ReadAutoUpdateEnabled()) {
         Log("Auto update disabled during wait.");
