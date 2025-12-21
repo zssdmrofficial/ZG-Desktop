@@ -8,15 +8,7 @@
     "outDir": "dist",
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "paths": {
-      "*": [
-        "./node_modules/*"
-      ],
-      "adm-zip": [
-        "./node_modules/@types/adm-zip"
-      ]
-    }
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*"

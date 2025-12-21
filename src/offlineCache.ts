@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as https from 'https';
-import { promises as fs } from 'fs';
+import { promises as fs, createWriteStream } from 'fs';
 import AdmZip from 'adm-zip';
 import type { TargetWebsite } from './shared/websites';
 import type { RefreshSummary } from './shared/offlineTypes';
@@ -100,11 +100,14 @@ export class OfflineCacheManager {
     const folderName = this.getFolderName(site.url);
     const destination = path.join(cacheRoot, folderName);
     const tempDestination = `${destination}.tmp`;
+    const tempZipPath = path.join(cacheRoot, `${folderName}.zip`);
 
     await fs.rm(tempDestination, { recursive: true, force: true });
+    // Ensure no stale zip file exists
+    await fs.rm(tempZipPath, { force: true });
 
     try {
-      await this.syncViaGithubArchive(site, destination, tempDestination);
+      await this.syncViaGithubArchive(site, destination, tempDestination, tempZipPath);
 
       const entryPath = path.join(destination, this.getEntryFile(site));
       if (!(await this.pathExists(entryPath))) {
@@ -113,16 +116,24 @@ export class OfflineCacheManager {
       this.offlineIndex.set(this.getOrigin(site.url), entryPath);
     } finally {
       await fs.rm(tempDestination, { recursive: true, force: true });
+      await fs.rm(tempZipPath, { force: true });
     }
   }
 
-  private async syncViaGithubArchive(site: TargetWebsite, destination: string, tempDestination: string): Promise<void> {
+  private async syncViaGithubArchive(
+    site: TargetWebsite,
+    destination: string,
+    tempDestination: string,
+    tempZipPath: string
+  ): Promise<void> {
     const branch = site.repository.branch ?? 'main';
     const { owner, repo } = this.parseGithubRepo(site.repository.url);
     const archiveUrl = `https://codeload.github.com/${owner}/${repo}/zip/refs/heads/${branch}`;
 
-    const archiveBuffer = await this.downloadArchiveBuffer(archiveUrl);
-    const zip = new AdmZip(archiveBuffer);
+    await this.downloadArchiveToDisk(archiveUrl, tempZipPath);
+    
+    // AdmZip can read directly from a file path
+    const zip = new AdmZip(tempZipPath);
 
     await fs.rm(tempDestination, { recursive: true, force: true });
     await fs.mkdir(tempDestination, { recursive: true });
@@ -134,7 +145,19 @@ export class OfflineCacheManager {
     }
 
     await fs.rm(destination, { recursive: true, force: true });
-    await fs.rename(extractedRoot, destination);
+    
+    // Add retries for rename operation as it can be flaky on Windows
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await fs.rename(extractedRoot, destination);
+        break;
+      } catch (error) {
+        retries--;
+        if (retries === 0) throw error;
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
   }
 
   private parseGithubRepo(repoUrl: string): { owner: string; repo: string } {
@@ -158,18 +181,18 @@ export class OfflineCacheManager {
     return dirEntry ? path.join(target, dirEntry.name) : null;
   }
 
-  private async downloadArchiveBuffer(url: string, redirectCount = 0): Promise<Buffer> {
+  private async downloadArchiveToDisk(url: string, destPath: string, redirectCount = 0): Promise<void> {
     if (redirectCount > 5) {
       throw new Error('Too many redirects while downloading archive.');
     }
 
-    return new Promise<Buffer>((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       https
         .get(url, response => {
           const { statusCode, headers } = response;
           if (statusCode && statusCode >= 300 && statusCode < 400 && headers.location) {
             response.resume();
-            this.downloadArchiveBuffer(headers.location, redirectCount + 1)
+            this.downloadArchiveToDisk(headers.location, destPath, redirectCount + 1)
               .then(resolve)
               .catch(reject);
             return;
@@ -181,12 +204,20 @@ export class OfflineCacheManager {
             return;
           }
 
-          const chunks: Buffer[] = [];
-          response.on('data', chunk => {
-            chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+          const fileStream = createWriteStream(destPath);
+          response.pipe(fileStream);
+
+          fileStream.on('finish', () => {
+            fileStream.close();
+            resolve();
           });
-          response.on('end', () => resolve(Buffer.concat(chunks)));
-          response.on('error', reject);
+
+          fileStream.on('error', (err) => {
+            fileStream.close();
+            // Attempt to remove the partial file
+            fs.unlink(destPath).catch(() => undefined);
+            reject(err);
+          });
         })
         .on('error', reject);
     });

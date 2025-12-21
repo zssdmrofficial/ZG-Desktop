@@ -6,6 +6,7 @@ import type { IncomingMessage } from 'http';
 import * as path from 'path';
 import { tmpdir } from 'os';
 import { spawn } from 'child_process';
+import semver from 'semver';
 
 declare const UPDATE_PROMPT_WEBPACK_ENTRY: string;
 declare const UPDATE_PROMPT_PRELOAD_WEBPACK_ENTRY: string;
@@ -244,46 +245,19 @@ const normalizeVersionString = (value: string): string | null => {
   return trimmed === '' ? null : trimmed;
 };
 
-const parseVersionSegments = (value: string): number[] | null => {
-  const segments = value.split('.');
-  const parsed: number[] = [];
-  for (const segment of segments) {
-    const digitsMatch = segment.match(/^\d+/);
-    if (!digitsMatch) {
-      return null;
-    }
-    parsed.push(Number.parseInt(digitsMatch[0], 10));
-  }
-  return parsed;
-};
-
-const compareVersionSegments = (left: number[], right: number[]): number => {
-  const length = Math.max(left.length, right.length);
-  for (let i = 0; i < length; i += 1) {
-    const leftValue = left[i] ?? 0;
-    const rightValue = right[i] ?? 0;
-    if (leftValue > rightValue) {
-      return 1;
-    }
-    if (leftValue < rightValue) {
-      return -1;
-    }
-  }
-  return 0;
-};
-
 const isNormalizedVersionNewer = (latest: string, current: string): boolean => {
-  const latestSegments = parseVersionSegments(latest);
-  if (!latestSegments) {
+  const validLatest = semver.valid(latest);
+  const validCurrent = semver.valid(current);
+
+  if (!validLatest) {
     console.warn('[AutoUpdate] 無法解析 release 版本', latest);
     return false;
   }
-  const currentSegments = parseVersionSegments(current);
-  if (!currentSegments) {
+  if (!validCurrent) {
     console.warn('[AutoUpdate] 無法解析目前版本', current);
     return false;
   }
-  return compareVersionSegments(latestSegments, currentSegments) > 0;
+  return semver.gt(validLatest, validCurrent);
 };
 
 const getResponse = (url: string, redirectCount = 0): Promise<IncomingMessage> => {
@@ -342,11 +316,22 @@ const downloadInstaller = async (
   }
 
   await new Promise<void>((resolve, reject) => {
+    let fileStream: fs.WriteStream | undefined;
+
     const cleanupAndReject = (error: Error) => {
-      fsPromises
-        .unlink(destination)
-        .catch(() => undefined)
-        .finally(() => reject(error));
+      const doUnlink = () => {
+        fsPromises
+          .unlink(destination)
+          .catch(() => undefined)
+          .finally(() => reject(error));
+      };
+
+      if (fileStream && !fileStream.destroyed) {
+        fileStream.destroy();
+        fileStream.once('close', doUnlink);
+      } else {
+        doUnlink();
+      }
     };
 
     const run = async () => {
@@ -376,7 +361,7 @@ const downloadInstaller = async (
         });
       };
 
-      const fileStream = fs.createWriteStream(destination);
+      fileStream = fs.createWriteStream(destination);
 
       response.on('data', (chunk: Buffer) => {
         receivedBytes += chunk.length;
@@ -386,7 +371,7 @@ const downloadInstaller = async (
       response.pipe(fileStream);
 
       fileStream.on('finish', () => {
-        fileStream.close(err => {
+        fileStream!.close(err => {
           if (err) {
             cleanupAndReject(err);
             return;
@@ -411,11 +396,10 @@ const downloadInstaller = async (
 
 const launchInstaller = async (installerPath: string): Promise<void> => {
   try {
-    const child = spawn(installerPath, [], {
-      detached: true,
-      stdio: 'ignore',
-    });
-    child.unref();
+    const errorMessage = await shell.openPath(installerPath);
+    if (errorMessage) {
+      throw new Error(errorMessage);
+    }
     app.quit();
   } catch (error) {
     throw error instanceof Error ? error : new Error(String(error));

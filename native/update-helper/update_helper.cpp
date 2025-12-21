@@ -10,6 +10,7 @@
 #include <thread>
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 
 #include "json.hpp"
 
@@ -21,7 +22,7 @@ static const wchar_t* kOwner = L"zssdmrofficial";
 static const wchar_t* kRepo = L"ZG-Desktop";
 static const wchar_t* kAssetName = L"ZG-Desktop-Setup.exe";
 static const wchar_t* kUserAgent = L"ZG-Desktop Auto Updater";
-static const wchar_t* kMutexName = L"Global\\ZG-Desktop-UpdateHelper";
+static const wchar_t* kMutexName = L"Local\\ZG-Desktop-UpdateHelper";
 
 static std::wstring ToWString(const std::string& value) {
   if (value.empty()) return L"";
@@ -108,34 +109,96 @@ static std::string NormalizeVersion(const std::string& value) {
   return Trim(trimmed);
 }
 
-static std::vector<int> ParseVersionSegments(const std::string& value) {
-  std::vector<int> segments;
-  std::stringstream stream(value);
-  std::string part;
-  while (std::getline(stream, part, '.')) {
-    if (part.empty()) return {};
-    size_t i = 0;
-    while (i < part.size() && std::isdigit(static_cast<unsigned char>(part[i]))) {
-      i++;
-    }
-    if (i == 0) return {};
-    segments.push_back(std::stoi(part.substr(0, i)));
+struct SemVer {
+  std::vector<int> numbers;
+  std::string prerelease;
+};
+
+static SemVer ParseSemVer(const std::string& value) {
+  SemVer v;
+  std::string core = value;
+  size_t hyphen = value.find('-');
+  size_t plus = value.find('+');
+  
+  if (plus != std::string::npos) {
+    core = value.substr(0, plus);
   }
-  return segments;
+  
+  if (hyphen != std::string::npos && (plus == std::string::npos || hyphen < plus)) {
+    core = value.substr(0, hyphen);
+    size_t endPre = (plus == std::string::npos) ? value.length() : plus;
+    v.prerelease = value.substr(hyphen + 1, endPre - hyphen - 1);
+  }
+
+  std::stringstream ss(core);
+  std::string part;
+  while (std::getline(ss, part, '.')) {
+    if (!part.empty() && std::all_of(part.begin(), part.end(), ::isdigit)) {
+      v.numbers.push_back(std::stoi(part));
+    }
+  }
+  return v;
+}
+
+static bool IsNumeric(const std::string& s) {
+  if (s.empty()) return false;
+  return std::all_of(s.begin(), s.end(), ::isdigit);
+}
+
+static int CompareIdentifiers(const std::string& s1, const std::string& s2) {
+  if (s1 == s2) return 0;
+  bool n1 = IsNumeric(s1);
+  bool n2 = IsNumeric(s2);
+  if (n1 && n2) {
+    long long i1 = std::strtoll(s1.c_str(), nullptr, 10);
+    long long i2 = std::strtoll(s2.c_str(), nullptr, 10);
+    if (i1 < i2) return -1;
+    if (i1 > i2) return 1;
+    return 0;
+  }
+  if (n1) return -1;
+  if (n2) return 1;
+  return s1.compare(s2);
+}
+
+static int ComparePrerelease(const std::string& pre1, const std::string& pre2) {
+  if (pre1.empty() && pre2.empty()) return 0;
+  if (pre1.empty()) return 1;
+  if (pre2.empty()) return -1;
+
+  std::stringstream ss1(pre1);
+  std::stringstream ss2(pre2);
+  std::string id1, id2;
+  std::vector<std::string> parts1, parts2;
+
+  while(std::getline(ss1, id1, '.')) parts1.push_back(id1);
+  while(std::getline(ss2, id2, '.')) parts2.push_back(id2);
+
+  size_t count = std::min(parts1.size(), parts2.size());
+  for(size_t i=0; i<count; ++i) {
+    int cmp = CompareIdentifiers(parts1[i], parts2[i]);
+    if (cmp != 0) return cmp;
+  }
+  
+  if (parts1.size() < parts2.size()) return -1;
+  if (parts1.size() > parts2.size()) return 1;
+  
+  return 0;
 }
 
 static int CompareVersions(const std::string& left, const std::string& right) {
-  auto leftSegments = ParseVersionSegments(left);
-  auto rightSegments = ParseVersionSegments(right);
-  if (leftSegments.empty() || rightSegments.empty()) return 0;
-  size_t count = std::max(leftSegments.size(), rightSegments.size());
+  SemVer v1 = ParseSemVer(left);
+  SemVer v2 = ParseSemVer(right);
+
+  size_t count = std::max(v1.numbers.size(), v2.numbers.size());
   for (size_t i = 0; i < count; ++i) {
-    int l = i < leftSegments.size() ? leftSegments[i] : 0;
-    int r = i < rightSegments.size() ? rightSegments[i] : 0;
-    if (l > r) return 1;
-    if (l < r) return -1;
+    int n1 = (i < v1.numbers.size()) ? v1.numbers[i] : 0;
+    int n2 = (i < v2.numbers.size()) ? v2.numbers[i] : 0;
+    if (n1 > n2) return 1;
+    if (n1 < n2) return -1;
   }
-  return 0;
+  
+  return ComparePrerelease(v1.prerelease, v2.prerelease);
 }
 
 static bool ReadRegistryStringValue(HKEY root, const std::wstring& subkey, const std::wstring& name, std::wstring* out) {
@@ -491,19 +554,24 @@ static std::wstring BuildApiUrl() {
 }
 
 static bool RunInstaller(const std::wstring& installerPath) {
-  std::wstring args = L"\"" + installerPath + L"\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS";
-  STARTUPINFOW si{};
-  si.cb = sizeof(si);
-  PROCESS_INFORMATION pi{};
+  std::wstring params = L"/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS";
+  
+  SHELLEXECUTEINFOW sei = { sizeof(sei) };
+  sei.lpVerb = nullptr;
+  sei.lpFile = installerPath.c_str();
+  sei.lpParameters = params.c_str();
+  sei.nShow = SW_SHOWNORMAL;
+  sei.fMask = SEE_MASK_NOCLOSEPROCESS;
 
-  std::wstring cmdLine = args;
-  if (!CreateProcessW(nullptr, cmdLine.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
+  if (!ShellExecuteExW(&sei)) {
     return false;
   }
 
-  WaitForSingleObject(pi.hProcess, INFINITE);
-  CloseHandle(pi.hProcess);
-  CloseHandle(pi.hThread);
+  if (sei.hProcess) {
+    WaitForSingleObject(sei.hProcess, INFINITE);
+    CloseHandle(sei.hProcess);
+  }
+  
   return true;
 }
 
