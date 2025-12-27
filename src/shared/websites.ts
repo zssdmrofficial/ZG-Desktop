@@ -56,6 +56,15 @@ export const targetWebsites: TargetWebsite[] = [
       entryFile: 'index.html',
     },
   },
+  {
+    name: '法律條文',
+    url: 'https://law.zssdmr.dpdns.org',
+    repository: {
+      url: 'https://github.com/zssdmrofficial/law.zssdmrofficial.github.io.git',
+      branch: 'main',
+      entryFile: 'index.html',
+    },
+  },
 ];
 
 export const NAVIGATION_TIMEOUT_MS = 5_000;
