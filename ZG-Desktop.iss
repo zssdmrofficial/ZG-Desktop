@@ -4,7 +4,7 @@
 
 [Setup]
 AppName=ZG-Desktop
-AppVersion=1.0.6
+AppVersion=1.0.7
 AppPublisher=zssdmrofficial
 DefaultDirName={autopf}\ZG-Desktop
 DefaultGroupName=ZG-Desktop
@@ -26,3 +26,4 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "{app}\ZG-Desktop.exe"; Description: "啟動 ZG-Desktop"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\resources\update-helper\ZG-UpdateHelper.exe"; Flags: nowait

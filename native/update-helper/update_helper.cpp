@@ -568,7 +568,8 @@ static bool RunInstaller(const std::wstring& installerPath) {
   }
 
   if (sei.hProcess) {
-    WaitForSingleObject(sei.hProcess, INFINITE);
+    // Determine if we need to wait. For self-update, we do NOT want to wait.
+    // We want to exit so the installer can overwrite us.
     CloseHandle(sei.hProcess);
   }
   
@@ -583,7 +584,7 @@ static std::wstring GetTempInstallerPath(const std::string& version) {
   return JoinPath(base, file);
 }
 
-static void CheckForUpdatesAndInstall() {
+static void CheckForUpdatesAndInstall(bool* shouldExit) {
   std::string currentVersion = GetInstalledVersionFromRegistry();
   if (currentVersion.empty()) {
     currentVersion = GetInstalledVersionFallback();
@@ -649,7 +650,9 @@ static void CheckForUpdatesAndInstall() {
   }
 
   Log("Installer downloaded, launching.");
-  if (!RunInstaller(installerPath)) {
+  if (RunInstaller(installerPath)) {
+    if (shouldExit) *shouldExit = true;
+  } else {
     Log("Installer failed to run.");
   }
 }
@@ -674,7 +677,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
       break;
     }
 
-    CheckForUpdatesAndInstall();
+    bool shouldExit = false;
+    CheckForUpdatesAndInstall(&shouldExit);
+    if (shouldExit) {
+      Log("Update started, exiting helper.");
+      break;
+    }
 
     for (int minute = 0; minute < 2; ++minute) {
       std::this_thread::sleep_for(std::chrono::minutes(1));
