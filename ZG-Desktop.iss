@@ -4,7 +4,7 @@
 
 [Setup]
 AppName=ZG-Desktop
-AppVersion=1.0.5
+AppVersion=1.0.6
 AppPublisher=zssdmrofficial
 DefaultDirName={autopf}\ZG-Desktop
 DefaultGroupName=ZG-Desktop
