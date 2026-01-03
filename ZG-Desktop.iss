@@ -4,15 +4,17 @@
 
 [Setup]
 AppName=ZG-Desktop
-AppVersion=1.0.7
+AppVersion=1.0.8
 AppPublisher=zssdmrofficial
-DefaultDirName={autopf}\ZG-Desktop
+DefaultDirName={userpf}\ZG-Desktop
 DefaultGroupName=ZG-Desktop
 OutputBaseFilename=ZG-Desktop-Setup
 Compression=lzma
 SolidCompression=yes
 SetupIconFile=icon.ico
 UninstallDisplayIcon={app}\ZG-Desktop.exe
+PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=commandline
 
 [Files]
 Source: "out\ZG-Desktop-win32-x64\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion

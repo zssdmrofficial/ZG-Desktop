@@ -10,21 +10,7 @@ type ManualUpdateResponse =
   | { status: 'ok'; result: { status: string; currentVersion: string; latestVersion?: string } }
   | { status: 'error'; message: string };
 
-const setToggleState = (
-  toggle: HTMLButtonElement,
-  label: HTMLElement | null,
-  status: HTMLElement | null,
-  enabled: boolean
-) => {
-  toggle.classList.toggle('is-on', enabled);
-  toggle.setAttribute('aria-checked', String(enabled));
-  if (label) label.textContent = enabled ? '開啟' : '關閉';
-  if (status) {
-    status.textContent = enabled
-      ? '自動更新已開啟（僅記錄設定偏好）。'
-      : '自動更新已關閉（僅記錄設定偏好）。';
-  }
-};
+
 
 window.addEventListener('DOMContentLoaded', async () => {
   const appName = document.getElementById('app-name');
@@ -33,9 +19,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   const closeAction = document.getElementById('close-action') as HTMLButtonElement | null;
   const checkUpdateButton = document.getElementById('settings-check-update') as HTMLButtonElement | null;
   const checkUpdateStatus = document.getElementById('check-update-status');
-  const autoUpdateToggle = document.getElementById('auto-update-toggle') as HTMLButtonElement | null;
-  const autoUpdateLabel = document.getElementById('auto-update-label');
-  const autoUpdateStatus = document.getElementById('auto-update-status');
+
 
   const data = (await window.settingsPromptAPI.getData()) as SettingsPromptData | null;
   if (!data) {
@@ -46,14 +30,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (appName) appName.textContent = data.appName;
   if (promptMeta) promptMeta.textContent = `版本 ${data.appVersion}`;
 
-  if (autoUpdateToggle) {
-    let current = Boolean(data.autoUpdateEnabled);
-    setToggleState(autoUpdateToggle, autoUpdateLabel, autoUpdateStatus, current);
-    autoUpdateToggle.addEventListener('click', async () => {
-      current = await window.settingsPromptAPI.setAutoUpdateEnabled(!current);
-      setToggleState(autoUpdateToggle, autoUpdateLabel, autoUpdateStatus, current);
-    });
-  }
+
 
   if (checkUpdateButton) {
     const defaultLabel = checkUpdateButton.textContent ?? '→ 檢查更新';

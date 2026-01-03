@@ -38,30 +38,11 @@ let externalView: BrowserView | null = null;
 let activeView: BrowserView | null = null;
 let isLoadingUrl = false;
 let settingsPromptWindow: BrowserWindow | null = null;
-let autoUpdateEnabled = false;
+const autoUpdateEnabled = true;
 let settingsPromptIpcRegistered = false;
 let updateHelperProcess: ChildProcess | null = null;
 
-const getAutoUpdateConfigPath = (): string => path.join(app.getPath('userData'), 'auto-update.json');
 
-const readAutoUpdateConfig = async (): Promise<boolean> => {
-  try {
-    const raw = await fsPromises.readFile(getAutoUpdateConfigPath(), 'utf8');
-    const parsed = JSON.parse(raw) as { enabled?: boolean };
-    return Boolean(parsed.enabled);
-  } catch {
-    return false;
-  }
-};
-
-const writeAutoUpdateConfig = async (enabled: boolean): Promise<void> => {
-  await fsPromises.mkdir(app.getPath('userData'), { recursive: true });
-  const payload = {
-    enabled: Boolean(enabled),
-    updatedAt: new Date().toISOString(),
-  };
-  await fsPromises.writeFile(getAutoUpdateConfigPath(), JSON.stringify(payload, null, 2), 'utf8');
-};
 
 const getUpdateHelperPath = (): string => {
   if (app.isPackaged) {
@@ -192,14 +173,9 @@ const ensureSettingsPromptIpcRegistered = (): void => {
   });
 
   ipcMain.handle('settings-prompt:set-auto-update', async (_event, enabled: boolean) => {
-    autoUpdateEnabled = Boolean(enabled);
-    await writeAutoUpdateConfig(autoUpdateEnabled);
-    if (autoUpdateEnabled) {
-      launchUpdateHelper();
-    } else {
-      stopUpdateHelper();
-    }
-    return autoUpdateEnabled;
+    // Force enable
+    launchUpdateHelper();
+    return true;
   });
 };
 
@@ -401,11 +377,9 @@ ipcMain.handle('open-settings-prompt', async () => {
 const bootstrap = async () => {
   await offlineCacheManager.initializeFromDisk();
   await registerOfflineProtocol();
-  autoUpdateEnabled = await readAutoUpdateConfig();
+  // autoUpdateEnabled is always true now
   createWindow();
-  if (autoUpdateEnabled) {
-    launchUpdateHelper();
-  }
+  launchUpdateHelper();
 };
 
 const registerOfflineProtocol = async (): Promise<void> => {

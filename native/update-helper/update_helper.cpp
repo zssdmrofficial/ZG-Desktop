@@ -60,9 +60,7 @@ static std::wstring GetConfigDir() {
   return JoinPath(GetAppDataPath(), L"ZG-Desktop");
 }
 
-static std::wstring GetConfigPath() {
-  return JoinPath(GetConfigDir(), L"auto-update.json");
-}
+
 
 static std::wstring GetLogPath() {
   return JoinPath(GetConfigDir(), L"update-helper.log");
@@ -82,16 +80,7 @@ static void Log(const std::string& message) {
 }
 
 static bool ReadAutoUpdateEnabled() {
-  std::ifstream in(ToString(GetConfigPath()));
-  if (!in.is_open()) return false;
-  std::stringstream buffer;
-  buffer << in.rdbuf();
-  try {
-    auto data = json::parse(buffer.str());
-    return data.value("enabled", false);
-  } catch (...) {
-    return false;
-  }
+  return true;
 }
 
 static std::string Trim(const std::string& value) {
