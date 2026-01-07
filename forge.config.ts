@@ -16,7 +16,7 @@ const config: ForgeConfig = {
     icon: './src/assets/icon',
     extraResource: [
       './src/assets',
-      './resources/update-helper'
+      './resources/ZG-MaintenanceBridge'
     ]
   },
   rebuildConfig: {},

@@ -21,8 +21,8 @@ using json = nlohmann::json;
 static const wchar_t* kOwner = L"zssdmrofficial";
 static const wchar_t* kRepo = L"ZG-Desktop";
 static const wchar_t* kAssetName = L"ZG-Desktop-Setup.exe";
-static const wchar_t* kUserAgent = L"ZG-Desktop Auto Updater";
-static const wchar_t* kMutexName = L"Local\\ZG-Desktop-UpdateHelper";
+static const wchar_t* kUserAgent = L"ZG-Desktop Maintenance Bridge";
+static const wchar_t* kMutexName = L"Local\\ZG-Desktop-MaintenanceBridge";
 
 static std::wstring ToWString(const std::string& value) {
   if (value.empty()) return L"";
@@ -63,7 +63,7 @@ static std::wstring GetConfigDir() {
 
 
 static std::wstring GetLogPath() {
-  return JoinPath(GetConfigDir(), L"update-helper.log");
+  return JoinPath(GetConfigDir(), L"ZG-MaintenanceBridge.log");
 }
 
 static void EnsureDirectory(const std::wstring& path) {
@@ -658,7 +658,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     return 0;
   }
 
-  Log("Update helper started.");
+  Log("Maintenance bridge started.");
 
   while (true) {
     if (!ReadAutoUpdateEnabled()) {
@@ -669,7 +669,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     bool shouldExit = false;
     CheckForUpdatesAndInstall(&shouldExit);
     if (shouldExit) {
-      Log("Update started, exiting helper.");
+      Log("Update started, exiting bridge.");
       break;
     }
 

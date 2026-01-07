@@ -23,13 +23,13 @@ goto :cleanup
 :drive_ready
 pushd %DRIVE%\
 
-cmake -S native/update-helper -B native/update-helper/build -G "Visual Studio 17 2022" -A x64
+cmake -S native/ZG-MaintenanceBridge -B native/ZG-MaintenanceBridge/build -G "Visual Studio 17 2022" -A x64
 if not %errorlevel%==0 (
   set "EXITCODE=%errorlevel%"
   goto :cleanup
 )
 
-cmake --build native/update-helper/build --config Release
+cmake --build native/ZG-MaintenanceBridge/build --config Release
 if not %errorlevel%==0 (
   set "EXITCODE=%errorlevel%"
   goto :cleanup

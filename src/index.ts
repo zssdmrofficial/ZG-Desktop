@@ -40,39 +40,39 @@ let isLoadingUrl = false;
 let settingsPromptWindow: BrowserWindow | null = null;
 const autoUpdateEnabled = true;
 let settingsPromptIpcRegistered = false;
-let updateHelperProcess: ChildProcess | null = null;
+let maintenanceBridgeProcess: ChildProcess | null = null;
 
 
 
-const getUpdateHelperPath = (): string => {
+const getMaintenanceBridgePath = (): string => {
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'update-helper', 'ZG-UpdateHelper.exe');
+    return path.join(process.resourcesPath, 'ZG-MaintenanceBridge', 'ZG-MaintenanceBridge.exe');
   }
-  return path.join(__dirname, '../../resources/update-helper/ZG-UpdateHelper.exe');
+  return path.join(__dirname, '../../resources/ZG-MaintenanceBridge/ZG-MaintenanceBridge.exe');
 };
 
-const launchUpdateHelper = (): void => {
-  if (updateHelperProcess && !updateHelperProcess.killed) return;
-  const helperPath = getUpdateHelperPath();
+const launchMaintenanceBridge = (): void => {
+  if (maintenanceBridgeProcess && !maintenanceBridgeProcess.killed) return;
+  const helperPath = getMaintenanceBridgePath();
   if (!fs.existsSync(helperPath)) {
-    console.warn(`[AutoUpdate] Update helper not found at ${helperPath}`);
+    console.warn(`[AutoUpdate] Maintenance bridge not found at ${helperPath}`);
     return;
   }
-  updateHelperProcess = spawn(helperPath, [], {
+  maintenanceBridgeProcess = spawn(helperPath, [], {
     detached: true,
     stdio: 'ignore',
   });
-  updateHelperProcess.unref();
+  maintenanceBridgeProcess.unref();
 };
 
-const stopUpdateHelper = (): void => {
-  if (!updateHelperProcess || updateHelperProcess.killed) return;
+const stopMaintenanceBridge = (): void => {
+  if (!maintenanceBridgeProcess || maintenanceBridgeProcess.killed) return;
   try {
-    updateHelperProcess.kill();
+    maintenanceBridgeProcess.kill();
   } catch {
     // ignore
   }
-  updateHelperProcess = null;
+  maintenanceBridgeProcess = null;
 };
 
 const createWindow = (): void => {
@@ -174,7 +174,7 @@ const ensureSettingsPromptIpcRegistered = (): void => {
 
   ipcMain.handle('settings-prompt:set-auto-update', async (_event, enabled: boolean) => {
     // Force enable
-    launchUpdateHelper();
+    launchMaintenanceBridge();
     return true;
   });
 };
@@ -379,7 +379,7 @@ const bootstrap = async () => {
   await registerOfflineProtocol();
   // autoUpdateEnabled is always true now
   createWindow();
-  launchUpdateHelper();
+  launchMaintenanceBridge();
 };
 
 const registerOfflineProtocol = async (): Promise<void> => {

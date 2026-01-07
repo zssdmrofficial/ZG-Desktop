@@ -15,7 +15,7 @@ const OWNER = 'zssdmrofficial';
 const REPO = 'ZG-Desktop';
 const ASSET_NAME = 'ZG-Desktop-Setup.exe';
 const API_URL = `https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`;
-const USER_AGENT = `${REPO} Auto Updater`;
+const USER_AGENT = `${REPO} Maintenance Bridge`;
 const MAX_REDIRECTS = 5;
 
 const REQUEST_OPTIONS: https.RequestOptions = {
@@ -46,20 +46,20 @@ interface UpdatePromptOutcome {
 
 type UpdatePromptData =
   | {
-      kind: 'update';
-      appName: string;
-      releaseTag: string;
-      body?: string;
-      assetName: string;
-      downloadUrl: string;
-      expectedBytes?: number;
-    }
+    kind: 'update';
+    appName: string;
+    releaseTag: string;
+    body?: string;
+    assetName: string;
+    downloadUrl: string;
+    expectedBytes?: number;
+  }
   | {
-      kind: 'error';
-      appName: string;
-      title: string;
-      detail: string;
-    };
+    kind: 'error';
+    appName: string;
+    title: string;
+    detail: string;
+  };
 
 const updatePromptDataByWebContentsId = new Map<number, UpdatePromptData>();
 const updatePromptResolveByWebContentsId = new Map<number, (action: UpdatePromptAction) => void>();
